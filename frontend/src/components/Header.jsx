@@ -1061,7 +1061,7 @@ const Header = () => {
                   display: 'inline-block'
                 }}
               >
-                {item.id === 'home' ? <i className="fas fa-home" style={{ fontSize: '15px' }}></i> : item.label}
+                {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? <i className="fas fa-home" style={{ fontSize: '15px' }}></i> : item.label}
               </Link>
               {item.subcategories && item.subcategories.length > 0 && (
                 <button
@@ -1381,7 +1381,7 @@ const Header = () => {
                     flex: 1
                   }}
                 >
-                  {item.id === 'home' ? <><i className="fas fa-home" style={{ marginRight: '8px' }}></i> {item.label}</> : item.label}
+                  {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? <><i className="fas fa-home" style={{ marginRight: '8px' }}></i> {item.label}</> : item.label}
                 </Link>
               </div>
             </li>
