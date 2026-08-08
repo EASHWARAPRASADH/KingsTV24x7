@@ -319,11 +319,13 @@ const News = () => {
             {currentPage === 1 && searchQuery.trim() === '' && selectedCategory === 'all' && selectedDistrict === 'all' && featuredArticle && (
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr',
                 gap: '1.5rem',
                 margin: '1.5rem 0 2.5rem 0'
               }} className="hero-split-deck-layout">
                 <style>{`
+                  .hero-split-deck-layout {
+                    grid-template-columns: 1fr;
+                  }
                   @media (min-width: 992px) {
                     .hero-split-deck-layout {
                       grid-template-columns: 7fr 5fr !important;
@@ -636,10 +638,19 @@ const News = () => {
             {/* 5. Main Feed Layout */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr',
               gap: '2rem',
               alignItems: 'start'
             }} className="news-main-grid-layout">
+              <style>{`
+                .news-main-grid-layout {
+                  grid-template-columns: 1fr;
+                }
+                @media (min-width: 992px) {
+                  .news-main-grid-layout {
+                    grid-template-columns: 8fr 4fr !important;
+                  }
+                }
+              `}</style>
               
               {/* Left Column - Articles Grid */}
               <div>
