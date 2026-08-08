@@ -1708,9 +1708,6 @@ const Header = () => {
             overflow: visible !important;
             overflow-x: visible !important;
           }
-          .main-nav-container-desktop {
-            overflow: visible !important;
-          }
         }
         @media (max-width: 768px) {
           .logo-district-container {
