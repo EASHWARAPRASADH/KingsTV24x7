@@ -16,6 +16,7 @@ import OfflineBanner from './components/OfflineBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Home from './pages/Home';
+import News from './pages/News';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -127,6 +128,8 @@ function AppContent() {
           <Route path="/king-tv" element={<Home />} />
           <Route path="/king-tv/" element={<Home />} />
           <Route path="/index.html" element={<Navigate to="/" replace />} />
+          <Route path="/News" element={<News />} />
+          <Route path="/news" element={<News />} />
           <Route path="/login" element={<Login />} />
           <Route path="/login.html" element={<Navigate to="/login" replace />} />
           <Route path="/register" element={<Register />} />

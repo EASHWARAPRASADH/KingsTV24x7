@@ -298,68 +298,20 @@ const Header = () => {
             { id: 'reg-rfq', slug: 'rfq', path: '/rfq', name: 'RFQ', nameTa: 'கோரிக்கைகள்' }
           ]
         },
+        { id: 'news', path: '/News', label: lang === 'en' ? 'News' : 'செய்திகள்', subcategories: [] },
+        { id: 'complaints', path: '/submit-report', label: lang === 'en' ? 'Complaints' : 'புகார்', subcategories: [] },
+        { id: 'events', path: '/category/events', label: lang === 'en' ? 'Events' : 'நிகழ்ச்சிகள்', subcategories: [] },
         { id: 'wishes', path: '/wishes', label: lang === 'en' ? 'Wishes' : 'வாழ்த்து', subcategories: [] },
         { id: 'obituaries', path: '/obituaries', label: lang === 'en' ? 'Obituaries' : 'இரங்கல்', subcategories: [] },
+        { id: 'donations', path: '/category/donations', label: lang === 'en' ? 'Donations' : 'தானம்', subcategories: [] },
         { id: 'jobs', path: '/jobs', label: lang === 'en' ? 'Jobs' : 'வேலை', subcategories: [] },
-        { id: 'classifieds', path: '/classifieds', label: lang === 'en' ? 'Classifieds' : 'தள்ளுபடி', subcategories: [] },
-        {
-          id: 'politics', path: '/category/politics', label: lang === 'en' ? 'Politics' : 'அரசியல்', subcategories: [
-            { id: 'p-state', slug: 'state', name: 'State', nameTa: 'மாநிலம்' },
-            { id: 'p-national', slug: 'national', name: 'National', nameTa: 'தேசியம்' },
-            { id: 'p-intl', slug: 'international', name: 'International', nameTa: 'சர்வதேசம்' },
-            { id: 'p-gov', slug: 'governance', name: 'Governance', nameTa: 'அரசு கொள்கைகள்' }
-          ]
-        },
-        {
-          id: 'business', path: '/category/business', label: lang === 'en' ? 'Business' : 'வணிகம்', subcategories: [
-            { id: 'b-markets', slug: 'markets', name: 'Markets', nameTa: 'சந்தை' },
-            { id: 'b-companies', slug: 'companies', name: 'Companies', nameTa: 'நிறுவனங்கள்' },
-            { id: 'b-inv', slug: 'investment', name: 'Investment', nameTa: 'முதலீடு' },
-            { id: 'b-startups', slug: 'startups', name: 'Startups', nameTa: 'ஸ்டார்ட்அப்' }
-          ]
-        },
-        {
-          id: 'sports', path: '/category/sports', label: lang === 'en' ? 'Sports' : 'விளையாட்டு', subcategories: [
-            { id: 's-cricket', slug: 'cricket', name: 'Cricket', nameTa: 'கிரிக்கெட்' },
-            { id: 's-football', slug: 'football', name: 'Football', nameTa: 'கால்பந்து' },
-            { id: 's-tennis', slug: 'tennis', name: 'Tennis', nameTa: 'டென்னிஸ்' },
-            { id: 's-local', slug: 'local-sports', name: 'Local Sports', nameTa: 'உள்ளூர்' }
-          ]
-        },
-        {
-          id: 'cinema', path: '/category/cinema', label: lang === 'en' ? 'Cinema' : 'பொழுதுபோக்கு', subcategories: [
-            { id: 'c-kolly', slug: 'kollywood', name: 'Kollywood', nameTa: 'கோலிவுட்' },
-            { id: 'c-bolly', slug: 'bollywood', name: 'Bollywood', nameTa: 'பாலிவுட்' },
-            { id: 'c-reviews', slug: 'reviews', name: 'Reviews', nameTa: 'விமர்சனங்கள்' },
-            { id: 'c-music', slug: 'music', name: 'Music', nameTa: 'இசை' }
-          ]
-        },
-        {
-          id: 'tech', path: '/category/tech', label: lang === 'en' ? 'Technology' : 'தொழில்நுட்பம்', subcategories: [
-            { id: 't-phones', slug: 'smartphones', name: 'Smartphones', nameTa: 'ஸ்மார்ட் போன்' },
-            { id: 't-soft', slug: 'software', name: 'Software', nameTa: 'மென்பொருள்' },
-            { id: 't-ai', slug: 'ai', name: 'AI', nameTa: 'AI' },
-            { id: 't-space', slug: 'space', name: 'Space', nameTa: 'விண்வெளி' }
-          ]
-        },
-        {
-          id: 'international', path: '/category/international', label: lang === 'en' ? 'International' : 'சர்வதேசம்', subcategories: [
-            { id: 'i-world', slug: 'world-news', name: 'World News', nameTa: 'உலக செய்திகள்' }
-          ]
-        },
-        {
-          id: 'videos', path: '/videos', label: lang === 'en' ? 'Video' : 'வீடியோ', subcategories: [
-            { id: 'v-state', slug: 'v-state', name: 'State', nameTa: 'மாநிலம்' },
-            { id: 'v-national', slug: 'v-national', name: 'National', nameTa: 'தேசியம்' },
-            { id: 'v-cinema', slug: 'v-cinema', name: 'Cinema', nameTa: 'சினிமா' }
-          ]
-        },
-        { id: 'web-stories', path: '/web-stories', label: lang === 'en' ? 'Web Stories' : 'வெப் ஸ்டோரிஸ்', subcategories: [] }
+        { id: 'discounts', path: '/deals', label: lang === 'en' ? 'Discounts' : 'தள்ளுபடி', subcategories: [] },
+        { id: 'classifieds', path: '/classifieds', label: lang === 'en' ? 'Classifieds' : 'வாங்க விற்க', subcategories: [] }
       ];
     }
 
-    const primaryItems = rawItems.slice(0, 7);
-    const moreItems = rawItems.slice(7);
+    const primaryItems = rawItems;
+    const moreItems = [];
     const allItems = rawItems;
 
     return { primaryItems, moreItems, allItems };
@@ -1109,7 +1061,7 @@ const Header = () => {
                   display: 'inline-block'
                 }}
               >
-                {item.label}
+                {item.id === 'home' ? <i className="fas fa-home" style={{ fontSize: '15px' }}></i> : item.label}
               </Link>
               {item.subcategories && item.subcategories.length > 0 && (
                 <button
@@ -1429,7 +1381,7 @@ const Header = () => {
                     flex: 1
                   }}
                 >
-                  {item.label}
+                  {item.id === 'home' ? <><i className="fas fa-home" style={{ marginRight: '8px' }}></i> {item.label}</> : item.label}
                 </Link>
               </div>
             </li>
