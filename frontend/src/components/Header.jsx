@@ -1061,7 +1061,19 @@ const Header = () => {
                   display: 'inline-block'
                 }}
               >
-                {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? <i className="fas fa-home" style={{ fontSize: '15px' }}></i> : item.label}
+                {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? (
+                  <img 
+                    src="/assets/images/home-icon.png" 
+                    alt="Home" 
+                    style={{ 
+                      height: '16px', 
+                      width: 'auto', 
+                      display: 'inline-block', 
+                      verticalAlign: 'middle',
+                      filter: theme === 'dark' ? 'invert(1) brightness(2)' : 'none'
+                    }} 
+                  />
+                ) : item.label}
               </Link>
               {item.subcategories && item.subcategories.length > 0 && (
                 <button
@@ -1381,7 +1393,20 @@ const Header = () => {
                     flex: 1
                   }}
                 >
-                  {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? <><i className="fas fa-home" style={{ marginRight: '8px' }}></i> {item.label}</> : item.label}
+                  {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <img 
+                        src="/assets/images/home-icon.png" 
+                        alt="Home" 
+                        style={{ 
+                          height: '16px', 
+                          width: 'auto', 
+                          filter: theme === 'dark' ? 'invert(1) brightness(2)' : 'none'
+                        }} 
+                      />
+                      <span>{item.label}</span>
+                    </span>
+                  ) : item.label}
                 </Link>
               </div>
             </li>
