@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
@@ -6,13 +6,14 @@ import { fetchApi, getImageUrl } from '../utils/api';
 import AdWidget from '../components/AdWidget';
 
 const News = () => {
-  const { lang, t } = useContext(LanguageContext);
+  const { lang } = useContext(LanguageContext);
   const { theme } = useContext(ThemeContext);
   const [searchParams, setSearchParams] = useSearchParams();
 
   // State
   const [loading, setLoading] = useState(true);
   const [articles, setArticles] = useState([]);
+  const [breakingNews, setBreakingNews] = useState([]);
   const [categories, setCategories] = useState([]);
   const [liveVideo, setLiveVideo] = useState(null);
   const [trending, setTrending] = useState([]);
@@ -36,10 +37,12 @@ const News = () => {
   ];
 
   useEffect(() => {
-    document.title = lang === 'en' ? 'News Feed - KINGS 24x7' : 'செய்திகள் - KINGS 24x7';
+    document.title = lang === 'en' ? 'Latest News & Bulletins | KINGS 24x7' : 'சமீபத்திய செய்திகள் | கிங்ஸ் 24x7';
   }, [lang]);
 
   useEffect(() => {
+    setLoading(true);
+
     // 1. Fetch categories
     fetchApi('/categories/nav')
       .then(data => {
@@ -66,7 +69,15 @@ const News = () => {
         });
       });
 
-    // 3. Fetch all articles
+    // 3. Fetch breaking news
+    fetchApi('/breaking-news/getAllWeb')
+      .then(res => {
+        const data = res?.content || (Array.isArray(res) ? res : []);
+        setBreakingNews(data);
+      })
+      .catch(() => {});
+
+    // 4. Fetch all articles
     fetchApi('/articles/getAllWeb?size=300')
       .then(res => {
         const data = res?.content || (Array.isArray(res) ? res : []);
@@ -108,18 +119,15 @@ const News = () => {
 
   // Filter and Sort Processing
   const filteredArticles = articles.filter(art => {
-    // Search filter
     const matchesSearch = searchQuery.trim() === '' || 
       (art.titleEn || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (art.titleTa || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (art.contentEn || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (art.contentTa || '').toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Category filter
     const matchesCategory = selectedCategory === 'all' || 
       String(art.categoryId) === String(selectedCategory);
 
-    // District filter
     const matchesDistrict = selectedDistrict === 'all' || 
       (art.districtNameEn && art.districtNameEn.toLowerCase() === selectedDistrict.toLowerCase()) ||
       (art.districtNameTa && art.districtNameTa.toLowerCase() === selectedDistrict.toLowerCase());
@@ -138,542 +146,816 @@ const News = () => {
     return 0;
   });
 
+  // Highlight featured top article & right sidebar articles (split hero layout)
+  const featuredArticle = filteredArticles[0];
+  const sideHeroArticles = filteredArticles.slice(1, 4);
+
   // Pagination calculations
-  const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
+  // We exclude the hero deck articles from pagination list on page 1 to prevent duplication
+  const baseList = (currentPage === 1) 
+    ? filteredArticles.slice(4) 
+    : filteredArticles;
+
+  const totalPages = Math.ceil(baseList.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentArticles = filteredArticles.slice(indexOfFirstItem, indexOfLastItem);
+  const currentArticles = baseList.slice(indexOfFirstItem, indexOfLastItem);
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
-    window.scrollTo({ top: 300, behavior: 'smooth' });
+    const contentNode = document.getElementById('news-content-start');
+    if (contentNode) {
+      contentNode.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 400, behavior: 'smooth' });
+    }
   };
-
-  // Highlight featured top article
-  const featuredArticle = filteredArticles[0];
-  const listArticles = currentArticles.filter(art => !featuredArticle || art.id !== featuredArticle.id);
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: theme === 'dark' ? '#0b0f19' : '#f8fafc' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-          <div className="animate-spin" style={{ width: '48px', height: '48px', border: '4px solid var(--primary, #B3732A)', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
-          <span style={{ fontSize: '14px', fontWeight: 600, color: theme === 'dark' ? '#94a3b8' : '#64748b' }}>
-            {lang === 'en' ? 'Fetching News Feed...' : 'செய்திகள் ஏற்றப்படுகின்றன...'}
-          </span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{
-      background: theme === 'dark' ? '#0b0f19' : '#f8fafc',
-      color: theme === 'dark' ? '#f1f5f9' : '#1e293b',
+      background: theme === 'dark' ? '#070a13' : '#f4f6fa',
+      color: theme === 'dark' ? '#e2e8f0' : '#1e293b',
       minHeight: '100vh',
-      padding: '2rem 1rem'
+      fontFamily: '"Inter", "Outfit", sans-serif',
+      paddingBottom: '3rem'
     }}>
-      <div className="container" style={{ maxWidth: '1280px', margin: '0 auto' }}>
-        
-        {/* Page Header */}
-        <div style={{ marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '1.5rem' }}>
-          <h1 style={{
-            fontSize: '2.5rem',
-            fontWeight: 900,
-            letterSpacing: '-1px',
-            color: 'var(--primary, #B3732A)',
-            margin: 0
-          }}>
-            {lang === 'en' ? 'Kings 24x7 News Portal' : 'கிங்ஸ் 24x7 செய்தி தளம்'}
-          </h1>
-          <p style={{
-            fontSize: '14px',
-            margin: '6px 0 0 0',
-            color: theme === 'dark' ? '#94a3b8' : '#64748b'
-          }}>
-            {lang === 'en' ? 'Your trusted window to regional, national, and international updates.' : 'உள்ளூர், மாநில, மற்றும் உலகளாவிய செய்திகளின் உன்னத தளம்.'}
-          </p>
-        </div>
-
-        {/* Filters Panel */}
+      
+      {/* 1. Breaking News Ticker Bar */}
+      {breakingNews.length > 0 && (
         <div style={{
-          background: theme === 'dark' ? '#111827' : '#ffffff',
-          borderRadius: '12px',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-          padding: '1.5rem',
-          marginBottom: '2rem',
+          background: '#dc2626',
+          color: '#ffffff',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem'
+          alignItems: 'center',
+          overflow: 'hidden',
+          height: '40px',
+          boxShadow: '0 2px 10px rgba(220, 38, 38, 0.2)',
+          position: 'relative',
+          zIndex: 10
         }}>
-          {/* Top Search & Dropdowns Row */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '12px'
+            background: '#b91c1c',
+            padding: '0 16px',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            fontWeight: 900,
+            fontSize: '13px',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+            boxShadow: '4px 0 10px rgba(0,0,0,0.15)',
+            zIndex: 11
           }}>
-            {/* Search Input */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <i className="fas fa-search" style={{ position: 'absolute', left: '16px', color: '#94a3b8' }}></i>
-              <input
-                type="text"
-                placeholder={lang === 'en' ? 'Search headlines, contents...' : 'செய்திகள், கட்டுரைகளைத் தேடுக...'}
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px 12px 42px',
-                  borderRadius: '8px',
-                  border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
-                  background: theme === 'dark' ? '#1f2937' : '#f9fafb',
-                  color: 'inherit',
-                  outline: 'none',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-
-            {/* District Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                {lang === 'en' ? 'District:' : 'மாவட்டம்:'}
-              </label>
-              <select
-                value={selectedDistrict}
-                onChange={(e) => handleDistrictChange(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
-                  background: theme === 'dark' ? '#1f2937' : '#ffffff',
-                  color: 'inherit',
-                  outline: 'none',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="all">{lang === 'en' ? 'All Districts' : 'அனைத்து மாவட்டங்கள்'}</option>
-                {districts.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                {lang === 'en' ? 'Sort By:' : 'வரிசைப்படுத்து:'}
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
-                  background: theme === 'dark' ? '#1f2937' : '#ffffff',
-                  color: 'inherit',
-                  outline: 'none',
-                  fontSize: '14px'
-                }}
-              >
-                <option value="newest">{lang === 'en' ? 'Newest First' : 'புதியவை முதலில்'}</option>
-                <option value="oldest">{lang === 'en' ? 'Oldest First' : 'பழையவை முதலில்'}</option>
-                <option value="popular">{lang === 'en' ? 'Most Popular' : 'அதிகம் பார்வையிடப்பட்டவை'}</option>
-              </select>
-            </div>
+            <i className="fas fa-bolt" style={{ marginRight: '6px', animation: 'flash 1.5s infinite' }}></i>
+            {lang === 'en' ? 'BREAKING' : 'செய்தி விளம்பரம்'}
           </div>
-
-          {/* Categories Pill Bar */}
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
-            <span style={{ fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', color: '#94a3b8', display: 'block', marginBottom: '8px' }}>
-              {lang === 'en' ? 'Categories' : 'செய்திப் பிரிவுகள்'}
-            </span>
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px'
-            }}>
-              <button
-                onClick={() => handleCategoryChange('all')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '20px',
-                  border: 'none',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  background: selectedCategory === 'all' ? 'var(--primary, #B3732A)' : (theme === 'dark' ? '#1f2937' : '#f1f5f9'),
-                  color: selectedCategory === 'all' ? '#ffffff' : 'inherit',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {lang === 'en' ? 'All' : 'அனைத்தும்'}
-              </button>
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategoryChange(cat.id)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    border: 'none',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    background: String(selectedCategory) === String(cat.id) ? 'var(--primary, #B3732A)' : (theme === 'dark' ? '#1f2937' : '#f1f5f9'),
-                    color: String(selectedCategory) === String(cat.id) ? '#ffffff' : 'inherit',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {lang === 'en' ? cat.name : (cat.nameTa || cat.name)}
-                </button>
+          <div className="ticker-wrapper" style={{
+            display: 'flex',
+            whiteSpace: 'nowrap',
+            width: '100%',
+            overflow: 'hidden'
+          }}>
+            <style>{`
+              @keyframes ticker {
+                0% { transform: translate3d(0, 0, 0); }
+                100% { transform: translate3d(-50%, 0, 0); }
+              }
+              @keyframes flash {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.4; }
+              }
+              .ticker-track {
+                display: inline-flex;
+                animation: ticker 25s linear infinite;
+              }
+              .ticker-track:hover {
+                animation-play-state: paused;
+              }
+              .ticker-item {
+                padding: 0 24px;
+                font-size: 13.5px;
+                font-weight: 700;
+                color: #ffffff;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+              }
+              .ticker-item::after {
+                content: "•";
+                color: rgba(255, 255, 255, 0.5);
+                margin-left: 24px;
+              }
+            `}</style>
+            <div className="ticker-track">
+              {/* Double it up to make infinite marquee smooth */}
+              {[...breakingNews, ...breakingNews].map((item, idx) => (
+                <span key={idx} className="ticker-item">
+                  {lang === 'en' ? item.titleEn : item.titleTa}
+                </span>
               ))}
             </div>
           </div>
         </div>
+      )}
 
-        {/* Main Grid Section (BBC/NDTV Grid layout) */}
+      {/* Main Container */}
+      <div className="container" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1rem' }}>
+        
+        {/* 2. Top Portal Brand Title */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gap: '2rem',
-          alignItems: 'start'
-        }} className="news-main-grid-layout">
-          <style>{`
-            @media (min-width: 992px) {
-              .news-main-grid-layout {
-                grid-template-columns: 8fr 4fr !important;
-              }
-            }
-          `}</style>
-
-          {/* Left Column - Articles */}
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          padding: '2rem 0 1.2rem 0',
+          borderBottom: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid #e2e8f0'
+        }}>
           <div>
-            {filteredArticles.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '4rem 2rem',
-                background: theme === 'dark' ? '#111827' : '#ffffff',
-                borderRadius: '12px'
-              }}>
-                <i className="far fa-newspaper" style={{ fontSize: '48px', color: '#94a3b8', marginBottom: '1rem' }}></i>
-                <h3>{lang === 'en' ? 'No articles match your filters' : 'தேடலுக்குரிய செய்திகள் எதுவும் கிடைக்கவில்லை'}</h3>
-                <p style={{ color: '#94a3b8', fontSize: '14px' }}>
-                  {lang === 'en' ? 'Try adjusting your search terms or filters.' : 'வேறு சொற்கள் அல்லது வடிகட்டிகளைப் பயன்படுத்தி தேடவும்.'}
-                </p>
-              </div>
-            ) : (
-              <>
-                {/* Hero Featured Article (Only show on page 1) */}
-                {currentPage === 1 && featuredArticle && (
-                  <div style={{
-                    background: theme === 'dark' ? '#111827' : '#ffffff',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
-                    marginBottom: '2rem',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}>
-                    <div style={{ position: 'relative', width: '100%', height: '420px', overflow: 'hidden' }}>
-                      <img
-                        src={getImageUrl(featuredArticle)}
-                        alt={lang === 'en' ? featuredArticle.titleEn : featuredArticle.titleTa}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/assets/images/default-news.png';
-                        }}
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.4) 60%, transparent)',
-                        padding: '2rem',
-                        color: '#ffffff'
-                      }}>
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                          <span style={{ background: 'var(--primary, #B3732A)', color: '#ffffff', fontSize: '11px', fontWeight: '900', padding: '4px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                            {featuredArticle.categoryName || 'News'}
-                          </span>
-                          {featuredArticle.districtNameEn && (
-                            <span style={{ background: '#3b82f6', color: '#ffffff', fontSize: '11px', fontWeight: '900', padding: '4px 8px', borderRadius: '4px' }}>
-                              {lang === 'en' ? featuredArticle.districtNameEn : featuredArticle.districtNameTa}
-                            </span>
-                          )}
-                        </div>
-                        <h2 style={{ fontSize: '2rem', fontWeight: 900, margin: '0 0 10px 0', lineHeight: 1.2 }}>
-                          <Link to={`/article/${featuredArticle.id}`} style={{ color: '#ffffff', textDecoration: 'none' }}>
-                            {lang === 'en' ? featuredArticle.titleEn : featuredArticle.titleTa}
-                          </Link>
-                        </h2>
-                        <p style={{ fontSize: '14.5px', color: '#cbd5e1', margin: 0, opacity: 0.9 }}>
-                          {lang === 'en' ? featuredArticle.shortDescEn : featuredArticle.shortDescTa}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Main Articles List Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '1.5rem',
-                  marginBottom: '2rem'
-                }}>
-                  {listArticles.map(art => (
-                    <div
-                      key={art.id}
-                      style={{
-                        background: theme === 'dark' ? '#111827' : '#ffffff',
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        transition: 'transform 0.2s',
-                        cursor: 'pointer'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
-                    >
-                      <Link to={`/article/${art.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                        <div style={{ width: '100%', height: '180px', overflow: 'hidden', position: 'relative' }}>
-                          <img
-                            src={getImageUrl(art)}
-                            alt={lang === 'en' ? art.titleEn : art.titleTa}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = '/assets/images/default-news.png';
-                            }}
-                          />
-                          <div style={{ position: 'absolute', top: '12px', left: '12px', display: 'flex', gap: '4px' }}>
-                            <span style={{ background: 'var(--primary, #B3732A)', color: '#ffffff', fontSize: '10px', fontWeight: '900', padding: '3px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                              {art.categoryName || 'News'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div style={{ padding: '1.2rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 10px 0', lineHeight: 1.3 }}>
-                            {lang === 'en' ? art.titleEn : art.titleTa}
-                          </h3>
-                          <p style={{
-                            fontSize: '13px',
-                            color: theme === 'dark' ? '#94a3b8' : '#64748b',
-                            margin: '0 0 15px 0',
-                            flex: 1,
-                            overflow: 'hidden',
-                            display: '-webkit-box',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical'
-                          }}>
-                            {lang === 'en' ? art.shortDescEn : art.shortDescTa}
-                          </p>
-
-                          <div style={{
-                            borderTop: '1px solid rgba(0,0,0,0.05)',
-                            paddingTop: '8px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            fontSize: '11px',
-                            color: '#94a3b8',
-                            fontWeight: 600
-                          }}>
-                            <span>
-                              <i className="far fa-calendar-alt"></i> {new Date(art.publishedAt || art.createdAt).toLocaleDateString()}
-                            </span>
-                            <span>
-                              <i className="far fa-eye"></i> {art.viewsCount || 0}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginTop: '2rem'
-                  }}>
-                    <button
-                      onClick={() => paginate(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: theme === 'dark' ? '#1f2937' : '#e5e7eb',
-                        color: 'inherit',
-                        cursor: 'pointer',
-                        opacity: currentPage === 1 ? 0.5 : 1
-                      }}
-                    >
-                      <i className="fas fa-chevron-left"></i>
-                    </button>
-                    {Array.from({ length: totalPages }).map((_, i) => (
-                      <button
-                        key={i + 1}
-                        onClick={() => paginate(i + 1)}
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          background: currentPage === i + 1 ? 'var(--primary, #B3732A)' : (theme === 'dark' ? '#1f2937' : '#e5e7eb'),
-                          color: currentPage === i + 1 ? '#ffffff' : 'inherit',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => paginate(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '6px',
-                        border: 'none',
-                        background: theme === 'dark' ? '#1f2937' : '#e5e7eb',
-                        color: 'inherit',
-                        cursor: 'pointer',
-                        opacity: currentPage === totalPages ? 0.5 : 1
-                      }}
-                    >
-                      <i className="fas fa-chevron-right"></i>
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Right Column - Sidebar Widgets (BBC / NDTV style) */}
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '2rem'
-          }}>
-            {/* Live TV Streaming Widget */}
-            {liveVideo && (
-              <div style={{
-                background: theme === 'dark' ? '#111827' : '#ffffff',
-                borderRadius: '12px',
-                padding: '1.2rem',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
-              }}>
-                <h4 style={{
-                  margin: '0 0 12px 0',
-                  fontSize: '14px',
-                  fontWeight: 900,
-                  color: '#EF4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', display: 'inline-block' }}></span>
-                  {lang === 'en' ? 'LIVE NEWS TV' : 'நேரலை செய்தி'}
-                </h4>
-                <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '8px', overflow: 'hidden' }}>
-                  <iframe
-                    src={liveVideo.youtubeUrl}
-                    title={liveVideo.title}
-                    style={{ width: '100%', height: '100%', border: 'none' }}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Weather / Market Widget */}
-            <div style={{
-              background: 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
-              color: '#ffffff',
-              borderRadius: '12px',
-              padding: '1.2rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.05)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', fontWeight: 800 }}>
-                  {lang === 'en' ? 'CHENNAI WEATHER' : 'சென்னை வானிலை'}
-                </span>
-                <i className="fas fa-cloud-sun-rain" style={{ fontSize: '24px' }}></i>
-              </div>
-              <h3 style={{ fontSize: '2.5rem', fontWeight: 900, margin: '10px 0 0 0' }}>32°C</h3>
-              <p style={{ fontSize: '12px', margin: '4px 0 0 0', opacity: 0.8 }}>
-                {lang === 'en' ? 'Partly cloudy. Scattered showers expected.' : 'ஓரளவு மேகமூட்டம். ஆங்காங்கே மழை பெய்ய வாய்ப்பு.'}
-              </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ width: '4px', height: '24px', background: 'var(--primary, #B3732A)', borderRadius: '2px' }}></span>
+              <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '2px', color: 'var(--primary, #B3732A)' }}>
+                {lang === 'en' ? 'LIVE BROADCAST & NEWS DESK' : 'நேரலை மற்றும் செய்திப் பிரிவு'}
+              </span>
             </div>
-
-            {/* Trending Articles Feed List */}
-            <div style={{
-              background: theme === 'dark' ? '#111827' : '#ffffff',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.04)'
+            <h1 style={{
+              fontSize: '2.5rem',
+              fontWeight: 950,
+              letterSpacing: '-1.5px',
+              margin: '6px 0 0 0',
+              lineHeight: 1.1,
+              fontFamily: '"Outfit", sans-serif',
+              background: theme === 'dark' ? 'linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)' : 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
             }}>
-              <h3 style={{
-                fontSize: '16px',
-                fontWeight: 900,
-                margin: '0 0 1.2rem 0',
-                borderBottom: '2px solid var(--primary, #B3732A)',
-                paddingBottom: '8px'
-              }}>
-                {lang === 'en' ? 'TRENDING NEWS' : 'பரபரப்பான செய்திகள்'}
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                {trending.map((art, idx) => (
-                  <div key={art.id} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {lang === 'en' ? 'The Newsroom Feed' : 'செய்தி அரங்கம்'}
+            </h1>
+          </div>
+          <span style={{
+            fontSize: '12px',
+            fontWeight: 700,
+            background: theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            color: '#94a3b8'
+          }}>
+            <i className="far fa-clock" style={{ marginRight: '6px' }}></i>
+            {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ta-IN', { weekday: 'long', month: 'short', day: 'numeric' })}
+          </span>
+        </div>
+
+        {loading ? (
+          <div style={{ minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div className="animate-spin" style={{ width: '48px', height: '48px', border: '3px solid var(--primary, #B3732A)', borderTopColor: 'transparent', borderRadius: '50%' }}></div>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#94a3b8' }}>
+                {lang === 'en' ? 'Loading professional news deck...' : 'செய்திகள் தளவமைப்பு தயாராகிறது...'}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* 3. BBC-Inspired Split Hero Grid (Only on page 1 with no active search/filters) */}
+            {currentPage === 1 && searchQuery.trim() === '' && selectedCategory === 'all' && selectedDistrict === 'all' && featuredArticle && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr',
+                gap: '1.5rem',
+                margin: '1.5rem 0 2.5rem 0'
+              }} className="hero-split-deck-layout">
+                <style>{`
+                  @media (min-width: 992px) {
+                    .hero-split-deck-layout {
+                      grid-template-columns: 7fr 5fr !important;
+                    }
+                  }
+                `}</style>
+
+                {/* Left Side: Big Hero Card */}
+                <div style={{
+                  background: theme === 'dark' ? '#0d111d' : '#ffffff',
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
+                  border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative'
+                }}>
+                  <div style={{ position: 'relative', width: '100%', height: '380px', overflow: 'hidden' }}>
+                    <img
+                      src={getImageUrl(featuredArticle)}
+                      alt={lang === 'en' ? featuredArticle.titleEn : featuredArticle.titleTa}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/assets/images/default-news.png';
+                      }}
+                    />
                     <div style={{
-                      fontSize: '24px',
-                      fontWeight: 900,
-                      color: 'var(--primary, #B3732A)',
-                      opacity: 0.4,
-                      width: '30px',
-                      textAlign: 'center'
+                      position: 'absolute',
+                      top: '16px',
+                      left: '16px',
+                      display: 'flex',
+                      gap: '6px',
+                      zIndex: 5
                     }}>
-                      {idx + 1}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Link to={`/article/${art.id}`} style={{
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        fontSize: '13.5px',
-                        fontWeight: 700,
-                        lineHeight: 1.3,
-                        display: 'block'
-                      }}>
-                        {lang === 'en' ? art.titleEn : art.titleTa}
-                      </Link>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                        {art.viewsCount || 0} {lang === 'en' ? 'views' : 'பார்வைகள்'}
+                      <span style={{ background: '#dc2626', color: '#ffffff', fontSize: '10px', fontWeight: '900', padding: '4px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {lang === 'en' ? 'FEATURED' : 'முக்கிய செய்தி'}
+                      </span>
+                      <span style={{ background: 'var(--primary, #B3732A)', color: '#ffffff', fontSize: '10px', fontWeight: '900', padding: '4px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                        {featuredArticle.categoryName || 'News'}
                       </span>
                     </div>
                   </div>
-                ))}
+                  <div style={{ padding: '1.8rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <h2 style={{
+                      fontSize: '1.65rem',
+                      fontWeight: 900,
+                      margin: '0 0 12px 0',
+                      lineHeight: 1.25,
+                      fontFamily: '"Outfit", sans-serif'
+                    }}>
+                      <Link to={`/article/${featuredArticle.id}`} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary, #B3732A)'} onMouseLeave={(e) => e.currentTarget.style.color = 'inherit'}>
+                        {lang === 'en' ? featuredArticle.titleEn : featuredArticle.titleTa}
+                      </Link>
+                    </h2>
+                    <p style={{
+                      fontSize: '14.5px',
+                      color: theme === 'dark' ? '#94a3b8' : '#64748b',
+                      lineHeight: 1.6,
+                      margin: '0 0 20px 0',
+                      flex: 1
+                    }}>
+                      {lang === 'en' ? featuredArticle.shortDescEn : featuredArticle.shortDescTa}
+                    </p>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      color: '#94a3b8',
+                      borderTop: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid #f1f5f9',
+                      paddingTop: '12px'
+                    }}>
+                      <span>
+                        <i className="far fa-user" style={{ marginRight: '6px' }}></i>
+                        {featuredArticle.authorName || 'Kings News Desk'}
+                      </span>
+                      <span>
+                        <i className="far fa-calendar" style={{ marginRight: '6px' }}></i>
+                        {new Date(featuredArticle.publishedAt || featuredArticle.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Side: Bulletins Vertical Stack */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}>
+                  <span style={{ fontSize: '12px', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '6px', height: '6px', background: '#dc2626', borderRadius: '50%' }}></span>
+                    {lang === 'en' ? 'TOP HEADLINES' : 'தலைப்புச் செய்திகள்'}
+                  </span>
+                  
+                  {sideHeroArticles.map((art, idx) => (
+                    <div
+                      key={art.id}
+                      style={{
+                        background: theme === 'dark' ? '#0d111d' : '#ffffff',
+                        borderRadius: '12px',
+                        padding: '1.2rem',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                        border: theme === 'dark' ? '1px solid rgba(255,255,255,0.04)' : '1px solid #e2e8f0',
+                        display: 'flex',
+                        gap: '16px',
+                        alignItems: 'center',
+                        transition: 'transform 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(4px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                    >
+                      <div style={{ width: '100px', height: '80px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
+                        <img
+                          src={getImageUrl(art)}
+                          alt={lang === 'en' ? art.titleEn : art.titleTa}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/assets/images/default-news.png';
+                          }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: '10px', color: 'var(--primary, #B3732A)', fontWeight: 800, textTransform: 'uppercase' }}>
+                          {art.categoryName || 'General'}
+                        </span>
+                        <h4 style={{
+                          fontSize: '13.5px',
+                          fontWeight: 800,
+                          margin: '4px 0',
+                          lineHeight: 1.35,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden'
+                        }}>
+                          <Link to={`/article/${art.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {lang === 'en' ? art.titleEn : art.titleTa}
+                          </Link>
+                        </h4>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                          {new Date(art.publishedAt || art.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. Filters Control Panel */}
+            <div id="news-content-start" style={{
+              background: theme === 'dark' ? '#0d111d' : '#ffffff',
+              borderRadius: '16px',
+              border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid #e2e8f0',
+              boxShadow: '0 6px 30px rgba(0,0,0,0.04)',
+              padding: '1.5rem',
+              marginBottom: '2rem'
+            }}>
+              {/* Inputs Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '16px',
+                alignItems: 'center'
+              }}>
+                {/* Search Bar */}
+                <div style={{ position: 'relative' }}>
+                  <i className="fas fa-search" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '14px' }}></i>
+                  <input
+                    type="text"
+                    placeholder={lang === 'en' ? 'Search topics & headlines...' : 'செய்திகளைத் தேடுங்கள்...'}
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px 12px 42px',
+                      borderRadius: '10px',
+                      border: theme === 'dark' ? '1px solid #1e293b' : '1px solid #cbd5e1',
+                      background: theme === 'dark' ? '#131926' : '#f8fafc',
+                      color: 'inherit',
+                      outline: 'none',
+                      fontSize: '13.5px',
+                      transition: 'border-color 0.2s'
+                    }}
+                  />
+                </div>
+
+                {/* District Selector */}
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={selectedDistrict}
+                    onChange={(e) => handleDistrictChange(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      border: theme === 'dark' ? '1px solid #1e293b' : '1px solid #cbd5e1',
+                      background: theme === 'dark' ? '#131926' : '#ffffff',
+                      color: 'inherit',
+                      outline: 'none',
+                      fontSize: '13.5px',
+                      cursor: 'pointer',
+                      appearance: 'none'
+                    }}
+                  >
+                    <option value="all">📍 {lang === 'en' ? 'Filter by District' : 'அனைத்து மாவட்டங்கள்'}</option>
+                    {districts.map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                  <i className="fas fa-chevron-down" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8', fontSize: '10px' }}></i>
+                </div>
+
+                {/* Sort Option */}
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      border: theme === 'dark' ? '1px solid #1e293b' : '1px solid #cbd5e1',
+                      background: theme === 'dark' ? '#131926' : '#ffffff',
+                      color: 'inherit',
+                      outline: 'none',
+                      fontSize: '13.5px',
+                      cursor: 'pointer',
+                      appearance: 'none'
+                    }}
+                  >
+                    <option value="newest">🕒 {lang === 'en' ? 'Latest Headlines' : 'புதிய செய்திகள்'}</option>
+                    <option value="oldest">⌛ {lang === 'en' ? 'Chronological (Oldest)' : 'பழைய செய்திகள்'}</option>
+                    <option value="popular">🔥 {lang === 'en' ? 'Trending (Most Viewed)' : 'பரபரப்பான செய்திகள்'}</option>
+                  </select>
+                  <i className="fas fa-chevron-down" style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94a3b8', fontSize: '10px' }}></i>
+                </div>
+              </div>
+
+              {/* Scrollable Categories Pillow Bar */}
+              <div style={{
+                marginTop: '1.2rem',
+                borderTop: theme === 'dark' ? '1px solid rgba(255,255,255,0.04)' : '1px solid #f1f5f9',
+                paddingTop: '1rem'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  overflowX: 'auto',
+                  gap: '8px',
+                  paddingBottom: '4px'
+                }} className="hide-scrollbar">
+                  <style>{`
+                    .hide-scrollbar::-webkit-scrollbar {
+                      display: none;
+                    }
+                    .hide-scrollbar {
+                      -ms-overflow-style: none;
+                      scrollbar-width: none;
+                    }
+                  `}</style>
+                  <button
+                    onClick={() => handleCategoryChange('all')}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '25px',
+                      border: 'none',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      background: selectedCategory === 'all' ? 'var(--primary, #B3732A)' : (theme === 'dark' ? '#131926' : '#f1f5f9'),
+                      color: selectedCategory === 'all' ? '#ffffff' : 'inherit',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {lang === 'en' ? 'All Feeds' : 'அனைத்து செய்திகள்'}
+                  </button>
+                  {categories.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleCategoryChange(cat.id)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '25px',
+                        border: 'none',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        background: String(selectedCategory) === String(cat.id) ? 'var(--primary, #B3732A)' : (theme === 'dark' ? '#131926' : '#f1f5f9'),
+                        color: String(selectedCategory) === String(cat.id) ? '#ffffff' : 'inherit',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {lang === 'en' ? cat.name : (cat.nameTa || cat.name)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Ad Widget */}
-            <AdWidget placementId="sidebar_ad_archive" />
-          </div>
-        </div>
+            {/* 5. Main Feed Layout */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr',
+              gap: '2rem',
+              alignItems: 'start'
+            }} className="news-main-grid-layout">
+              
+              {/* Left Column - Articles Grid */}
+              <div>
+                {filteredArticles.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '5rem 2rem',
+                    background: theme === 'dark' ? '#0d111d' : '#ffffff',
+                    borderRadius: '16px',
+                    border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid #e2e8f0'
+                  }}>
+                    <i className="far fa-newspaper" style={{ fontSize: '56px', color: '#64748b', marginBottom: '1.2rem' }}></i>
+                    <h3 style={{ fontSize: '18px', fontWeight: 800 }}>
+                      {lang === 'en' ? 'No Articles Found' : 'செய்திகள் எதுவும் இல்லை'}
+                    </h3>
+                    <p style={{ color: '#94a3b8', fontSize: '13.5px', marginTop: '6px' }}>
+                      {lang === 'en' ? 'Try adjusting your search query or switching categories.' : 'தேடல் சொல்லை மாற்றித் தேடுங்கள்.'}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                      gap: '1.5rem'
+                    }}>
+                      {currentArticles.map(art => (
+                        <div
+                          key={art.id}
+                          style={{
+                            background: theme === 'dark' ? '#0d111d' : '#ffffff',
+                            borderRadius: '14px',
+                            overflow: 'hidden',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                            border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid #e2e8f0',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            transition: 'all 0.3s ease',
+                            height: '100%'
+                          }}
+                          className="news-card"
+                        >
+                          <style>{`
+                            .news-card:hover {
+                              transform: translateY(-5px);
+                              box-shadow: 0 10px 24px rgba(0,0,0,0.08) !important;
+                            }
+                          `}</style>
+                          <Link to={`/article/${art.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <div style={{ width: '100%', height: '190px', overflow: 'hidden', position: 'relative' }}>
+                              <img
+                                src={getImageUrl(art)}
+                                alt={lang === 'en' ? art.titleEn : art.titleTa}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = '/assets/images/default-news.png';
+                                }}
+                              />
+                              <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
+                                <span style={{ background: 'var(--primary, #B3732A)', color: '#ffffff', fontSize: '9.5px', fontWeight: '900', padding: '3px 7px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  {art.categoryName || 'News'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                              <h3 style={{
+                                fontSize: '15px',
+                                fontWeight: 800,
+                                margin: '0 0 8px 0',
+                                lineHeight: 1.35,
+                                fontFamily: '"Outfit", sans-serif',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden'
+                              }}>
+                                {lang === 'en' ? art.titleEn : art.titleTa}
+                              </h3>
+                              <p style={{
+                                fontSize: '12.5px',
+                                color: theme === 'dark' ? '#94a3b8' : '#64748b',
+                                margin: '0 0 16px 0',
+                                lineHeight: 1.5,
+                                flex: 1,
+                                overflow: 'hidden',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical'
+                              }}>
+                                {lang === 'en' ? art.shortDescEn : art.shortDescTa}
+                              </p>
+
+                              <div style={{
+                                borderTop: theme === 'dark' ? '1px solid rgba(255,255,255,0.04)' : '1px solid #f1f5f9',
+                                paddingTop: '10px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                fontSize: '11px',
+                                color: '#94a3b8',
+                                fontWeight: 700
+                              }}>
+                                <span>
+                                  <i className="far fa-clock" style={{ marginRight: '4px' }}></i> 
+                                  {new Date(art.publishedAt || art.createdAt).toLocaleDateString()}
+                                </span>
+                                <span>
+                                  <i className="far fa-eye" style={{ marginRight: '4px' }}></i> 
+                                  {art.viewsCount || 0}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginTop: '2.5rem'
+                      }}>
+                        <button
+                          onClick={() => paginate(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: theme === 'dark' ? '#0d111d' : '#ffffff',
+                            color: 'inherit',
+                            cursor: 'pointer',
+                            opacity: currentPage === 1 ? 0.4 : 1,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+                          }}
+                        >
+                          <i className="fas fa-chevron-left"></i>
+                        </button>
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                          <button
+                            key={i + 1}
+                            onClick={() => paginate(i + 1)}
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              background: currentPage === i + 1 ? 'var(--primary, #B3732A)' : (theme === 'dark' ? '#0d111d' : '#ffffff'),
+                              color: currentPage === i + 1 ? '#ffffff' : 'inherit',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {i + 1}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => paginate(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: theme === 'dark' ? '#0d111d' : '#ffffff',
+                            color: 'inherit',
+                            cursor: 'pointer',
+                            opacity: currentPage === totalPages ? 0.4 : 1,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+                          }}
+                        >
+                          <i className="fas fa-chevron-right"></i>
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Right Column - Sticky Sidebar */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.5rem',
+                position: 'sticky',
+                top: '90px'
+              }}>
+                
+                {/* 1. Live TV Widget */}
+                {liveVideo && (
+                  <div style={{
+                    background: theme === 'dark' ? '#0d111d' : '#ffffff',
+                    borderRadius: '16px',
+                    padding: '1.25rem',
+                    border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid #e2e8f0',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'flash 1.5s infinite' }}></span>
+                        {lang === 'en' ? 'LIVE STREAM' : 'நேரலை ஒலிபரப்பு'}
+                      </span>
+                      <span style={{ fontSize: '10.5px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '3px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                        24x7
+                      </span>
+                    </div>
+                    <div style={{ position: 'relative', width: '100%', height: '175px', borderRadius: '10px', overflow: 'hidden' }}>
+                      <iframe
+                        src={liveVideo.youtubeUrl}
+                        title={liveVideo.title}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Weather Widget */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+                  color: '#ffffff',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  boxShadow: '0 10px 25px rgba(59, 130, 246, 0.15)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', opacity: 0.85 }}>
+                        {lang === 'en' ? 'TAMIL NADU METRO' : 'வானிலை அறிக்கை'}
+                      </span>
+                      <h4 style={{ fontSize: '18px', fontWeight: 900, margin: '4px 0 0 0', fontFamily: '"Outfit", sans-serif' }}>
+                        {lang === 'en' ? 'Chennai City' : 'சென்னை மாநகரம்'}
+                      </h4>
+                    </div>
+                    <i className="fas fa-cloud-sun-rain" style={{ fontSize: '28px', color: '#ffbd59' }}></i>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '14px 0 6px 0' }}>
+                    <h2 style={{ fontSize: '2.8rem', fontWeight: 950, margin: 0 }}>32°C</h2>
+                    <span style={{ fontSize: '14px', opacity: 0.8 }}>/ 89.6°F</span>
+                  </div>
+                  <p style={{ fontSize: '12.5px', margin: 0, opacity: 0.85, lineHeight: 1.4 }}>
+                    {lang === 'en' ? 'Partly cloudy sky. High humidity. Occasional showers expected.' : 'ஓரளவு மேகமூட்டம். ஆங்காங்கே மழை பெய்ய வாய்ப்பு.'}
+                  </p>
+                </div>
+
+                {/* 3. Numbered Trending Feed */}
+                <div style={{
+                  background: theme === 'dark' ? '#0d111d' : '#ffffff',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid #e2e8f0',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
+                }}>
+                  <h3 style={{
+                    fontSize: '15px',
+                    fontWeight: 900,
+                    margin: '0 0 1.25rem 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <i className="fas fa-chart-line" style={{ color: 'var(--primary, #B3732A)' }}></i>
+                    {lang === 'en' ? 'TRENDING STORIES' : 'பிரபலமான செய்திகள்'}
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {trending.map((art, idx) => (
+                      <div key={art.id} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                        <div style={{
+                          fontSize: '26px',
+                          fontWeight: 950,
+                          color: 'var(--primary, #B3732A)',
+                          opacity: 0.35,
+                          lineHeight: 1,
+                          width: '24px'
+                        }}>
+                          {String(idx + 1).padStart(2, '0')}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <Link to={`/article/${art.id}`} style={{
+                            textDecoration: 'none',
+                            color: 'inherit',
+                            fontSize: '13.5px',
+                            fontWeight: 800,
+                            lineHeight: 1.35,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
+                            {lang === 'en' ? art.titleEn : art.titleTa}
+                          </Link>
+                          <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
+                            {art.viewsCount || 0} {lang === 'en' ? 'views' : 'பார்வைகள்'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Ad Widget */}
+                <AdWidget placementId="sidebar_ad_archive" />
+              </div>
+            </div>
+          </>
+        )}
 
       </div>
     </div>
