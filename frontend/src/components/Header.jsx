@@ -1066,11 +1066,11 @@ const Header = () => {
                     src="/assets/images/home-icon.png" 
                     alt="Home" 
                     style={{ 
-                      height: '16px', 
+                      height: '20px', 
                       width: 'auto', 
                       display: 'inline-block', 
                       verticalAlign: 'middle',
-                      filter: theme === 'dark' ? 'invert(1) brightness(2)' : 'none'
+                      filter: theme === 'dark' ? 'none' : 'invert(1)'
                     }} 
                   />
                 ) : item.label}
@@ -1399,9 +1399,9 @@ const Header = () => {
                         src="/assets/images/home-icon.png" 
                         alt="Home" 
                         style={{ 
-                          height: '16px', 
+                          height: '20px', 
                           width: 'auto', 
-                          filter: theme === 'dark' ? 'invert(1) brightness(2)' : 'none'
+                          filter: theme === 'dark' ? 'none' : 'invert(1)'
                         }} 
                       />
                       <span>{item.label}</span>
