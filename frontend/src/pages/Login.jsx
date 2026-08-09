@@ -321,7 +321,11 @@ const Login = () => {
           }
         } catch (error) {
           console.error("Firebase Google Sign-In Error:", error);
-          triggerToast(`Google Login Failed: ${error.message}`, '#EF4444');
+          if (error.code === 'auth/unauthorized-domain' || error.message?.includes('unauthorized-domain')) {
+            triggerToast(lang === 'en' ? `Domain (${window.location.hostname}) unauthorized in Firebase Console > Authentication > Settings.` : `இந்த டொமைன் (${window.location.hostname}) Firebase Console-இல் அனுமதிக்கப்படவில்லை.`, '#EF4444');
+          } else {
+            triggerToast(`Google Login Failed: ${error.message}`, '#EF4444');
+          }
         }
         return;
       } else {
