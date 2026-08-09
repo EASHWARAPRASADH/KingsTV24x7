@@ -88,7 +88,11 @@ const Register = () => {
             setTimeout(() => navigate('/'), 1200);
           } catch (error) {
             console.error("Firebase Google Sign-Up Error:", error);
-            triggerToast(`Google Signup Failed: ${error.message}`, '#EF4444');
+            if (error.code === 'auth/unauthorized-domain' || error.message?.includes('unauthorized-domain')) {
+              triggerToast(lang === 'en' ? `Domain (${window.location.hostname}) unauthorized in Firebase Console > Authentication > Settings.` : `இந்த டொமைன் (${window.location.hostname}) Firebase Console-இல் அனுமதிக்கப்படவில்லை.`, '#EF4444');
+            } else {
+              triggerToast(`Google Signup Failed: ${error.message}`, '#EF4444');
+            }
           }
         } else {
           setSocialName('Google Tester');

@@ -797,6 +797,24 @@ const NewsEditor = () => {
     setTimeout(() => setMsg(null), 4000);
   };
 
+  const getLiveArticleUrl = () => {
+    const mainOrigin = window.location.origin;
+    let baseDomain = 'https://kingstv.in';
+    if (mainOrigin.includes('localhost') || mainOrigin.includes('127.0.0.1')) {
+      baseDomain = 'http://localhost:5173';
+    } else if (mainOrigin.includes('test-technoprint.online')) {
+      baseDomain = 'https://king-tv.test-technoprint.online';
+    } else if (mainOrigin.includes('admin')) {
+      baseDomain = mainOrigin.replace('admin.', '').replace('/admin', '');
+    }
+
+    const selCategory = categories.find(c => String(c.id) === String(form.categoryId));
+    const catSlug = (selCategory?.slug || selCategory?.name || 'news').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const artSlug = (form.slug || slugify(form.titleEn || form.titleTa || 'article-title')).toLowerCase();
+
+    return `${baseDomain}/news/${catSlug}/${artSlug}`;
+  };
+
   // --- Content Moderation: Dictionary Fetch & Scanning ---
   useEffect(() => {
     const fetchDict = async () => {
@@ -1853,10 +1871,10 @@ const NewsEditor = () => {
       )}
 
       {/* Main Grid: 8px aligned */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: '24px', alignItems: 'start', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
         
         {/* Left Column: Editor & Media */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
           
 
           {/* AI Master Control Panel */}
@@ -1892,13 +1910,7 @@ const NewsEditor = () => {
                   {aiGeneratingDraft ? 'Drafting...' : 'Generate Full Draft'}
                 </button>
 
-                <button
-                  onClick={() => setKeyModalOpen(true)}
-                  style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid #F59E0B', padding: '8px 14px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                  title="Configure Gemini API Key"
-                >
-                  🔑 Set API Key
-                </button>
+
               </div>
             </div>
           </div>
@@ -2123,8 +2135,7 @@ const NewsEditor = () => {
                             {((activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || '').length} / 60 chars
                           </span>
                         </div>
-                        <input 
-                          type="text" 
+                        <AutoExpandTextarea 
                           value={(activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || ''} 
                           onChange={e => {
                             const val = e.target.value;
@@ -2132,17 +2143,38 @@ const NewsEditor = () => {
                             else setForm(f => ({ ...f, metaTitleEn: val, metaTitle: val }));
                           }} 
                           placeholder={activeTab === 0 ? "தேடு பொறிகளுக்கான தலைப்பு (தமிழ்)..." : "Optimized headline for search engines..."}
-                          style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', color: 'var(--text-primary)' }} 
+                          minHeight="46px"
+                          maxHeight="180px"
+                          style={{ fontSize: '14px', fontWeight: '600' }}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>URL Slug</label>
-                        <input 
-                          type="text" 
-                          value={form.slug || ''} 
-                          onChange={e => set('slug', e.target.value)} 
-                          placeholder="article-url-slug"
-                          style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', color: 'var(--text-primary)' }} 
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>URL Slug</label>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              navigator.clipboard.writeText(getLiveArticleUrl());
+                              showMsg('📋 Article Link copied to clipboard!');
+                            }}
+                            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            Copy Link
+                          </button>
+                        </div>
+                        <AutoExpandTextarea 
+                          value={getLiveArticleUrl()} 
+                          onChange={e => {
+                            const rawVal = e.target.value;
+                            const parts = rawVal.split('/');
+                            const lastPart = parts[parts.length - 1] || rawVal;
+                            const cleanSlug = slugify(lastPart);
+                            set('slug', cleanSlug);
+                          }} 
+                          placeholder="https://kingstv.in/news/category/article-slug"
+                          minHeight="46px"
+                          maxHeight="180px"
+                          style={{ fontSize: '13px', fontWeight: '600', color: '#059669', fontFamily: 'monospace' }}
                         />
                       </div>
                     </div>
@@ -2437,7 +2469,7 @@ const NewsEditor = () => {
                 {/* Google SERP Preview Card */}
                 <div style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '12px', background: '#ffffff', color: '#1a0dab' }}>
                   <div style={{ fontSize: '11px', color: '#5f6368', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    https://kings24x7.com › news › {form.slug || 'article-slug'}
+                    {getLiveArticleUrl()}
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a0dab', marginBottom: '4px', lineHeight: 1.3, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                     {form.metaTitle || form.titleEn || form.titleTa || 'Article Title Preview'}
