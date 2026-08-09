@@ -1059,12 +1059,27 @@ public class DataInitializer {
                 {"சிறப்பு நிகழ்வுகள் மற்றும் செயல்பாடுகள் நேரடி பதிவு", "Special Coverage on Live Events and Civic Activities", "நகர்ப்புற மேம்பாடு மற்றும் பொது சுகாதார சேவைகளை விரைவுபடுத்த சிறப்பு குழுக்கள் அமைக்கப்பட்டு நடவடிக்கைகள் தீவிரப்படுத்தப்பட்டுள்ளன."}
             };
 
+            // Purge any previously seeded dummy template articles (author = 'Kings TV Desk' with ' #' in title)
+            try {
+                java.util.List<Article> dummyArticles = articleRepository.findAll().stream()
+                    .filter(a -> "Kings TV Desk".equalsIgnoreCase(a.getAuthorName()) && 
+                                 ((a.getTitleEn() != null && a.getTitleEn().contains(" #")) || 
+                                  (a.getTitleTa() != null && a.getTitleTa().contains(" #"))))
+                    .toList();
+                if (!dummyArticles.isEmpty()) {
+                    articleRepository.deleteAll(dummyArticles);
+                    System.out.println("Purged " + dummyArticles.size() + " dummy template articles from database.");
+                }
+            } catch (Exception ex) {
+                System.err.println("Note on purging dummy articles: " + ex.getMessage());
+            }
+
             int totalSeeded = 0;
             int imgIndex = 0;
 
             for (Category cat : categories) {
                 long existingCount = articleRepository.countByCategoryId(cat.getId());
-                int targetCount = 50;
+                int targetCount = 0;
                 int toAdd = (int) (targetCount - existingCount);
                 if (toAdd <= 0) continue;
 

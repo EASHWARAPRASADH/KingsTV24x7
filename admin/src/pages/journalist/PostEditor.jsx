@@ -27,7 +27,7 @@ export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
     || localStorage.getItem('ai_llm_api_key') 
     || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
     || DEFAULT_GEMINI_KEY;
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+  return `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`;
 };
 
 const callGemini = async (prompt) => {
@@ -901,6 +901,8 @@ const PostEditor = () => {
     const prompt = `You are a professional news journalist and editor for Kings 24x7. Analyze and expand this raw news note into a full draft:\n"${baseContent.substring(0, 4000)}"\nAvailable Categories: [${catNames}]\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, excerptTa, excerptEn, seoTitle, metaDescription, metaKeywords, focusKeywords, slug, categoryId.`;
 
     try {
+      const draftPrompt = `You are a professional Tamil & English news editor for Kings 24x7. Generate a complete news article from this raw content:\n"${baseContent.substring(0, 4000)}"\nAvailable Categories: [${catNames}]\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa (HTML), contentEn (HTML), excerptTa, excerptEn, seoTitle, metaDescription, metaKeywords, focusKeywords, slug, categoryId.`;
+
       let raw = '';
       try {
         const res = await api.post('/admin/ai-config/generate-draft', {
@@ -909,7 +911,7 @@ const PostEditor = () => {
         });
         raw = res.data?.resultText || '';
       } catch (e) {
-        raw = await callGemini(prompt);
+        raw = await callGemini(draftPrompt);
       }
 
       let parsed = {};

@@ -51,7 +51,7 @@ const NewsManagement = () => {
       const params = new URLSearchParams({
         page,
         size: 12,
-        sortBy: 'publishedAt',
+        sortBy: 'id',
         direction: 'desc',
       });
       if (search) params.set('search', search);
@@ -126,6 +126,63 @@ const NewsManagement = () => {
       fetchArticles();
     } catch {
       showMsg('Bulk action failed.', true);
+    }
+  };
+
+  const bulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selected.size} selected articles?`)) return;
+    try {
+      await Promise.all([...selected].map(id => api.delete(`/articles/${id}`)));
+      showMsg(`${selected.size} articles deleted successfully.`);
+      setSelected(new Set());
+      fetchArticles();
+    } catch {
+      showMsg('Bulk delete failed.', true);
+    }
+  };
+
+  const purgeDemoArticles = async () => {
+    if (!window.confirm("Are you sure you want to purge all initial demo template articles from the database? Your manually created articles will NOT be deleted.")) return;
+    setLoading(true);
+    try {
+      // 1. Try dedicated backend purge endpoint first
+      try {
+        const res = await api.delete('/articles/purge-demo-articles');
+        if (res.data && (res.data.purgedCount !== undefined || res.data.message)) {
+          showMsg(res.data.message || 'Demo articles purged successfully.');
+          fetchArticles();
+          return;
+        }
+      } catch (e) {
+        // Dedicated endpoint not yet available on live backend API; fallback to client batch purge
+      }
+
+      // 2. Client-side batch purge using existing DELETE /articles/{id} endpoint
+      const res = await api.get('/articles/getAll?size=1000');
+      const allArticles = res.data?.content || (Array.isArray(res.data) ? res.data : []);
+      const demoArticles = allArticles.filter(a => 
+        (a.authorName && a.authorName.toLowerCase().includes('kings tv desk')) ||
+        (a.titleEn && a.titleEn.includes(' #')) ||
+        (a.titleTa && a.titleTa.includes(' #')) ||
+        (a.titleEn && a.titleEn.includes('Developmental Projects')) ||
+        (a.titleEn && a.titleEn.includes('Major News Updates')) ||
+        (a.titleEn && a.titleEn.includes('Special Coverage'))
+      );
+
+      if (demoArticles.length === 0) {
+        showMsg('No demo template articles found to purge.');
+        setLoading(false);
+        return;
+      }
+
+      await Promise.all(demoArticles.map(a => api.delete(`/articles/${a.id}`).catch(() => {})));
+      showMsg(`Successfully purged ${demoArticles.length} demo template articles.`);
+      fetchArticles();
+    } catch (err) {
+      console.error(err);
+      showMsg('Failed to purge demo articles. Please try again.', true);
+      setLoading(false);
     }
   };
 
@@ -211,6 +268,10 @@ const NewsManagement = () => {
           <RefreshCw size={14} /> Refresh
         </button>
 
+        <button onClick={purgeDemoArticles} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#F59E0B', borderColor: 'rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.1)' }} title="Clean up sample seed articles">
+          <Trash2 size={14} /> Purge Demo Data
+        </button>
+
         {selected.size > 0 && (
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{selected.size} selected:</span>
@@ -222,6 +283,9 @@ const NewsManagement = () => {
             </button>
             <button onClick={() => bulkAction('archived')} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', color: '#6B7280' }}>
               Archive All
+            </button>
+            <button onClick={bulkDelete} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', color: '#EF4444', borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Trash2 size={14} /> Delete Selected ({selected.size})
             </button>
           </div>
         )}

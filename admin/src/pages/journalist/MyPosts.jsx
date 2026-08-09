@@ -12,7 +12,7 @@ const MyPosts = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/articles/getAll?authorId=${user.id || ""}&page=0&size=50`)
+    api.get(`/articles/getAll?authorId=${user.id || ""}&page=0&size=50&sortBy=id&direction=desc`)
       .then(r => setPosts(Array.isArray(r.data) ? r.data : (r.data?.content || [])))
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
