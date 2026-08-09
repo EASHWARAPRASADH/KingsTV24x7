@@ -1,16 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn } from 'lucide-react';
+import { LogIn, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import api from '../api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [serverStatus, setServerStatus] = useState('checking'); // 'checking' | 'online' | 'waking' | 'offline'
   
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Pre-warm the backend server on page load
+  useEffect(() => {
+    let cancelled = false;
+    const wakeBackend = async () => {
+      setServerStatus('checking');
+      for (let i = 0; i < 5; i++) {
+        try {
+          const res = await fetch(api.defaults.baseURL + '/articles/getAll?page=0&size=1', { 
+            method: 'GET',
+            signal: AbortSignal.timeout(8000)
+          });
+          if (!cancelled && res.ok) {
+            setServerStatus('online');
+            return;
+          }
+        } catch {
+          if (!cancelled) setServerStatus(i === 0 ? 'waking' : 'waking');
+        }
+        if (cancelled) return;
+        await new Promise(r => setTimeout(r, 5000));
+      }
+      if (!cancelled) setServerStatus('offline');
+    };
+    wakeBackend();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,6 +91,12 @@ const Login = () => {
             style={{ maxHeight: '55px', width: 'auto', marginBottom: '0.5rem' }} 
           />
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Admin Portal Login</p>
+          <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem' }}>
+            {serverStatus === 'checking' && <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} color="#F59E0B" /> <span style={{ color: '#F59E0B' }}>Checking server...</span></>}
+            {serverStatus === 'waking' && <><Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} color="#F59E0B" /> <span style={{ color: '#F59E0B' }}>Waking up server... please wait</span></>}
+            {serverStatus === 'online' && <><CheckCircle size={14} color="#10B981" /> <span style={{ color: '#10B981' }}>Server online</span></>}
+            {serverStatus === 'offline' && <><AlertCircle size={14} color="#EF4444" /> <span style={{ color: '#EF4444' }}>Server offline — try again shortly</span></>}
+          </div>
         </div>
         
         {error && (
