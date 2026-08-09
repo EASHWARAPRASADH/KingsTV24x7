@@ -88,14 +88,14 @@ public class GeminiProvider implements LLMProvider {
             list.add(requested);
         }
         if (!list.contains("gemini-2.0-flash")) list.add("gemini-2.0-flash");
-        if (!list.contains("gemini-1.5-flash")) list.add("gemini-1.5-flash");
+        if (!list.contains("gemini-2.5-flash")) list.add("gemini-2.5-flash");
         return list;
     }
 
     private String buildUrlForModel(AiConfiguration config, String model) {
         String baseUrl = config.getBaseUrl();
         if (baseUrl == null || baseUrl.isBlank()) {
-            baseUrl = "https://generativelanguage.googleapis.com/v1beta";
+            baseUrl = "https://generativelanguage.googleapis.com/v1";
         }
         baseUrl = baseUrl.trim();
         if (baseUrl.endsWith("/")) {

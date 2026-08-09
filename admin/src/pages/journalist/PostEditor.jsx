@@ -27,7 +27,7 @@ export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
     || localStorage.getItem('ai_llm_api_key') 
     || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
     || DEFAULT_GEMINI_KEY;
-  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+  return `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`;
 };
 
 const callGemini = async (prompt) => {
@@ -42,11 +42,11 @@ const callGemini = async (prompt) => {
     throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
   }
 
-  const configuredModel = (!activeAiConfig.model || activeAiConfig.model === 'gemini-1.5-pro') ? 'gemini-2.0-flash' : activeAiConfig.model;
+  const configuredModel = (!activeAiConfig.model || activeAiConfig.model === 'gemini-1.5-pro' || activeAiConfig.model === 'gemini-1.5-flash') ? 'gemini-2.0-flash' : activeAiConfig.model;
   const modelsToTry = [
     configuredModel,
     'gemini-2.0-flash',
-    'gemini-1.5-flash'
+    'gemini-2.5-flash'
   ];
   
   const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
@@ -894,6 +894,8 @@ const PostEditor = () => {
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
     
     try {
+      const draftPrompt = `You are a professional Tamil & English news editor for Kings 24x7. Generate a complete news article from this raw content:\n"${baseContent.substring(0, 4000)}"\nAvailable Categories: [${catNames}]\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa (HTML), contentEn (HTML), excerptTa, excerptEn, seoTitle, metaDescription, metaKeywords, focusKeywords, slug, categoryId.`;
+
       let raw = '';
       try {
         const res = await api.post('/admin/ai-config/generate-draft', {
@@ -902,7 +904,7 @@ const PostEditor = () => {
         });
         raw = res.data?.resultText || '';
       } catch (e) {
-        raw = await callGemini(prompt);
+        raw = await callGemini(draftPrompt);
       }
 
       let parsed = {};
