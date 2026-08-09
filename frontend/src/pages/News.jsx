@@ -790,13 +790,25 @@ const News = () => {
                       </span>
                     </div>
                     <div style={{ position: 'relative', width: '100%', height: '175px', borderRadius: '10px', overflow: 'hidden' }}>
-                      <iframe
-                        src={liveVideo.youtubeUrl}
-                        title={liveVideo.title}
-                        style={{ width: '100%', height: '100%', border: 'none' }}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
+                      {(() => {
+                        const rawUrl = liveVideo.youtubeUrl || liveVideo.videoUrl || 'https://www.youtube.com/embed/2g811Eo7K8U';
+                        let srcUrl = 'https://www.youtube.com/embed/2g811Eo7K8U';
+                        if (rawUrl.includes('embed/')) {
+                          srcUrl = rawUrl;
+                        } else {
+                          const m = rawUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+                          if (m && m[1]) srcUrl = `https://www.youtube.com/embed/${m[1]}`;
+                        }
+                        return (
+                          <iframe
+                            src={srcUrl}
+                            title={liveVideo.title}
+                            style={{ width: '100%', height: '100%', border: 'none' }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        );
+                      })()}
                     </div>
                   </div>
                 )}

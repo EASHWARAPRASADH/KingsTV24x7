@@ -1160,9 +1160,11 @@ const Home = () => {
       youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U'
     };
     const liveStreamUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || 'https://www.youtube.com/embed/2g811Eo7K8U';
-    let embedUrl = liveStreamUrl;
-    if (liveStreamUrl && (liveStreamUrl.includes('youtube.com/watch') || liveStreamUrl.includes('youtu.be/'))) {
-      const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
+    let embedUrl = 'https://www.youtube.com/embed/2g811Eo7K8U';
+    if (liveStreamUrl.includes('embed/')) {
+      embedUrl = liveStreamUrl;
+    } else {
+      const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
       if (videoIdMatch && videoIdMatch[1]) {
         embedUrl = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
       }
