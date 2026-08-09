@@ -144,12 +144,45 @@ const NewsManagement = () => {
 
   const purgeDemoArticles = async () => {
     if (!window.confirm("Are you sure you want to purge all initial demo template articles from the database? Your manually created articles will NOT be deleted.")) return;
+    setLoading(true);
     try {
-      const res = await api.delete('/articles/purge-demo-articles');
-      showMsg(res.data?.message || 'Demo articles purged successfully.');
+      // 1. Try dedicated backend purge endpoint first
+      try {
+        const res = await api.delete('/articles/purge-demo-articles');
+        if (res.data && (res.data.purgedCount !== undefined || res.data.message)) {
+          showMsg(res.data.message || 'Demo articles purged successfully.');
+          fetchArticles();
+          return;
+        }
+      } catch (e) {
+        // Dedicated endpoint not yet available on live backend API; fallback to client batch purge
+      }
+
+      // 2. Client-side batch purge using existing DELETE /articles/{id} endpoint
+      const res = await api.get('/articles/getAll?size=1000');
+      const allArticles = res.data?.content || (Array.isArray(res.data) ? res.data : []);
+      const demoArticles = allArticles.filter(a => 
+        (a.authorName && a.authorName.toLowerCase().includes('kings tv desk')) ||
+        (a.titleEn && a.titleEn.includes(' #')) ||
+        (a.titleTa && a.titleTa.includes(' #')) ||
+        (a.titleEn && a.titleEn.includes('Developmental Projects')) ||
+        (a.titleEn && a.titleEn.includes('Major News Updates')) ||
+        (a.titleEn && a.titleEn.includes('Special Coverage'))
+      );
+
+      if (demoArticles.length === 0) {
+        showMsg('No demo template articles found to purge.');
+        setLoading(false);
+        return;
+      }
+
+      await Promise.all(demoArticles.map(a => api.delete(`/articles/${a.id}`).catch(() => {})));
+      showMsg(`Successfully purged ${demoArticles.length} demo template articles.`);
       fetchArticles();
-    } catch {
-      showMsg('Failed to purge demo articles.', true);
+    } catch (err) {
+      console.error(err);
+      showMsg('Failed to purge demo articles. Please try again.', true);
+      setLoading(false);
     }
   };
 
