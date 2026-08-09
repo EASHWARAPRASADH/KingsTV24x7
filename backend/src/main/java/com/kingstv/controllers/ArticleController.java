@@ -963,5 +963,19 @@ public class ArticleController {
             .<ResponseEntity<?>>map(ResponseEntity::ok)
             .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Revision not found")));
     }
+
+    @DeleteMapping("/purge-demo-articles")
+    public ResponseEntity<?> purgeDemoArticles() {
+        java.util.List<Article> dummyArticles = articleRepository.findAll().stream()
+            .filter(a -> "Kings TV Desk".equalsIgnoreCase(a.getAuthorName()) && 
+                         ((a.getTitleEn() != null && a.getTitleEn().contains(" #")) || 
+                          (a.getTitleTa() != null && a.getTitleTa().contains(" #"))))
+            .toList();
+        int count = dummyArticles.size();
+        if (count > 0) {
+            articleRepository.deleteAll(dummyArticles);
+        }
+        return ResponseEntity.ok(Map.of("message", "Successfully purged " + count + " demo template articles.", "purgedCount", count));
+    }
 }
 

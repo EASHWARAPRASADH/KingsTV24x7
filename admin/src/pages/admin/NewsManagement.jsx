@@ -129,6 +129,30 @@ const NewsManagement = () => {
     }
   };
 
+  const bulkDelete = async () => {
+    if (selected.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selected.size} selected articles?`)) return;
+    try {
+      await Promise.all([...selected].map(id => api.delete(`/articles/${id}`)));
+      showMsg(`${selected.size} articles deleted successfully.`);
+      setSelected(new Set());
+      fetchArticles();
+    } catch {
+      showMsg('Bulk delete failed.', true);
+    }
+  };
+
+  const purgeDemoArticles = async () => {
+    if (!window.confirm("Are you sure you want to purge all initial demo template articles from the database? Your manually created articles will NOT be deleted.")) return;
+    try {
+      const res = await api.delete('/articles/purge-demo-articles');
+      showMsg(res.data?.message || 'Demo articles purged successfully.');
+      fetchArticles();
+    } catch {
+      showMsg('Failed to purge demo articles.', true);
+    }
+  };
+
   const badge = (status) => {
     const s = STATUS_BADGE[status] || STATUS_BADGE.draft;
     return (
@@ -211,6 +235,10 @@ const NewsManagement = () => {
           <RefreshCw size={14} /> Refresh
         </button>
 
+        <button onClick={purgeDemoArticles} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#F59E0B', borderColor: 'rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.1)' }} title="Clean up sample seed articles">
+          <Trash2 size={14} /> Purge Demo Data
+        </button>
+
         {selected.size > 0 && (
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{selected.size} selected:</span>
@@ -222,6 +250,9 @@ const NewsManagement = () => {
             </button>
             <button onClick={() => bulkAction('archived')} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', color: '#6B7280' }}>
               Archive All
+            </button>
+            <button onClick={bulkDelete} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', color: '#EF4444', borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Trash2 size={14} /> Delete Selected ({selected.size})
             </button>
           </div>
         )}
