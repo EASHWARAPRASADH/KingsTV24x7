@@ -1159,7 +1159,13 @@ const Home = () => {
     const activeVideo = liveVideo || {
       youtubeUrl: 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX'
     };
-    const liveStreamUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
+    let liveStreamUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
+    
+    // Intercept old dummy database video URLs ("cat falling" / 2g811Eo7K8U / hw7Fjh6mncQ / live1)
+    if (liveStreamUrl.includes('2g811Eo7K8U') || liveStreamUrl.includes('hw7Fjh6mncQ') || liveStreamUrl.includes('live1')) {
+      liveStreamUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
+    }
+
     let embedUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
     if (liveStreamUrl.includes('embed/')) {
       embedUrl = liveStreamUrl;

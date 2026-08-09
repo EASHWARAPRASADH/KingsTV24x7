@@ -791,7 +791,13 @@ const News = () => {
                     </div>
                     <div style={{ position: 'relative', width: '100%', height: '175px', borderRadius: '10px', overflow: 'hidden' }}>
                       {(() => {
-                        const rawUrl = liveVideo?.youtubeUrl || liveVideo?.videoUrl || 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
+                        let rawUrl = liveVideo?.youtubeUrl || liveVideo?.videoUrl || 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
+                        
+                        // Intercept old dummy database video URLs ("cat falling" / 2g811Eo7K8U / hw7Fjh6mncQ / live1)
+                        if (rawUrl.includes('2g811Eo7K8U') || rawUrl.includes('hw7Fjh6mncQ') || rawUrl.includes('live1')) {
+                          rawUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
+                        }
+
                         let srcUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
                         if (rawUrl.includes('embed/')) {
                           srcUrl = rawUrl;

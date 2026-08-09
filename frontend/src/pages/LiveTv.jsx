@@ -35,7 +35,9 @@ const LiveTv = () => {
   }, [lang]);
 
   const getYoutubeEmbedUrl = (url) => {
-    if (!url || url.includes('2g811Eo7K8U')) return 'https://www.youtube.com/embed/hw7Fjh6mncQ?autoplay=1&mute=1';
+    if (!url || url.includes('2g811Eo7K8U') || url.includes('hw7Fjh6mncQ') || url.includes('live1')) {
+      return 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
+    }
     if (url.includes('embed/')) {
       return url.includes('?') ? url : `${url}?autoplay=1&mute=1`;
     }
@@ -43,7 +45,7 @@ const LiveTv = () => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     const videoId = (match && match[2] && match[2].length === 11) ? match[2] : null;
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1` : 'https://www.youtube.com/embed/hw7Fjh6mncQ?autoplay=1&mute=1';
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1` : 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
   };
 
   if (loading) {
