@@ -9,6 +9,7 @@ import UserAvatar from './UserAvatar';
 import UserDropdown from './UserDropdown';
 import { FALLBACK_SUBCATS, SUBCAT_EN_TRANSLATIONS } from '../constants/fallbackSubcategories';
 import { useCategoriesNav } from '../hooks/useCategoriesNav';
+import homeIcon from '../assets/home-icon.png';
 
 const Header = () => {
   const { t, lang, setLang } = useContext(LanguageContext);
@@ -1063,7 +1064,7 @@ const Header = () => {
               >
                 {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? (
                   <img 
-                    src="/assets/images/home-icon.png" 
+                    src={homeIcon} 
                     alt="Home" 
                     style={{ 
                       height: '20px', 
@@ -1396,7 +1397,7 @@ const Header = () => {
                   {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                       <img 
-                        src="/assets/images/home-icon.png" 
+                        src={homeIcon} 
                         alt="Home" 
                         style={{ 
                           height: '20px', 
