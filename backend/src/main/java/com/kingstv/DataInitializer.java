@@ -461,8 +461,8 @@ public class DataInitializer {
 
         // 5. Seed VideoContent
         System.out.println("Seeding Videos...");
-        seedVideo(polId, "தமிழக சட்டமன்ற பட்ஜெட் உரை நேரடி ஒளிபரப்பு 2026", "https://www.youtube.com/watch?v=live1", "தமிழக பட்ஜெட் கூட்டத்தொடர் நேரடித் தகவல்கள்.", 1, "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800", 7200);
-        seedVideo(spoId, "ஐபிஎல் 2025: சிஎஸ்கே அணியின் புதிய வியூகங்கள் மற்றும் பயிற்சி ஆட்டங்கள்", "https://www.youtube.com/watch?v=csk1", "சென்னை சூப்பர் கிங்ஸ் அணியின் புதிய கேப்டன் தலைமையில் பயிற்சி.", 0, "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800", 300);
+        seedVideo(polId, "தமிழக சட்டமன்ற பட்ஜெட் உரை நேரடி ஒளிபரப்பு 2026", "https://www.youtube.com/embed/2g811Eo7K8U", "தமிழக பட்ஜெட் கூட்டத்தொடர் நேரடித் தகவல்கள்.", 1, "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800", 7200);
+        seedVideo(spoId, "ஐபிஎல் 2025: சிஎஸ்கே அணியின் புதிய வியூகங்கள் மற்றும் பயிற்சி ஆட்டங்கள்", "https://www.youtube.com/embed/2g811Eo7K8U", "சென்னை சூப்பர் கிங்ஸ் அணியின் புதிய கேப்டன் தலைமையில் பயிற்சி.", 0, "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=800", 300);
 
         // 6. Seed Obituaries
         System.out.println("Seeding Obituaries...");

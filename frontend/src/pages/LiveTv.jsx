@@ -36,12 +36,14 @@ const LiveTv = () => {
 
   const getYoutubeEmbedUrl = (url) => {
     if (!url) return 'https://www.youtube.com/embed/2g811Eo7K8U';
-    if (url.includes('embed/')) return url;
+    if (url.includes('embed/')) {
+      return url.includes('?') ? url : `${url}?autoplay=1&mute=1`;
+    }
     // Extract video ID
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     const videoId = (match && match[2] && match[2].length === 11) ? match[2] : null;
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1` : url;
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1` : 'https://www.youtube.com/embed/2g811Eo7K8U?autoplay=1&mute=1';
   };
 
   if (loading) {

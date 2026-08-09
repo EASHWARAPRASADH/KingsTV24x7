@@ -1,4 +1,4 @@
-const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+const YOUTUBE_API_KEY = (import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY) || 'AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY';
 const FALLBACK_CHANNEL_ID = 'UCfBx2Jiac84Rgpgku52CgwX';
 
 /**
@@ -22,13 +22,9 @@ export const parseISO8601Duration = (duration) => {
  * Resolves a YouTube channel handle (e.g. @king24x7) to its Channel ID
  */
 export const resolveHandleToChannelId = async (handle) => {
-  if (!YOUTUBE_API_KEY) {
-    console.warn("YouTube API Key missing in environment, falling back to default Channel ID.");
-    return FALLBACK_CHANNEL_ID;
-  }
-  
+  const apiKey = YOUTUBE_API_KEY || 'AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY';
   const handleQuery = handle.startsWith('@') ? handle : `@${handle}`;
-  const url = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(handleQuery)}&key=${YOUTUBE_API_KEY}`;
+  const url = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(handleQuery)}&key=${apiKey}`;
   
   try {
     const res = await fetch(url);
@@ -39,7 +35,7 @@ export const resolveHandleToChannelId = async (handle) => {
     }
     return FALLBACK_CHANNEL_ID;
   } catch (error) {
-    console.error("Failed to resolve YouTube handle, falling back to default ID:", error);
+    console.warn("Failed to resolve YouTube handle, falling back to default ID:", error);
     return FALLBACK_CHANNEL_ID;
   }
 };
@@ -48,12 +44,10 @@ export const resolveHandleToChannelId = async (handle) => {
  * Fetches the latest 20 videos from a YouTube channel
  */
 export const fetchChannelVideos = async (channelId, maxResults = 20) => {
-  if (!YOUTUBE_API_KEY) {
-    throw new Error("VITE_YOUTUBE_API_KEY is not defined in the environment variables.");
-  }
+  const apiKey = YOUTUBE_API_KEY || 'AIzaSyA-LasNGo1npF8LnaAnqe5Z21DZVYufqSY';
   
   // 1. Fetch the uploads playlist ID for the channel
-  const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${YOUTUBE_API_KEY}`;
+  const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${apiKey}`;
   const channelRes = await fetch(channelUrl);
   if (!channelRes.ok) {
     throw new Error(`Failed to fetch channel details. YouTube API responded with status ${channelRes.status}`);
@@ -70,7 +64,7 @@ export const fetchChannelVideos = async (channelId, maxResults = 20) => {
   }
 
   // 2. Fetch the latest items from the uploads playlist
-  const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${YOUTUBE_API_KEY}`;
+  const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=${maxResults}&key=${apiKey}`;
   const playlistRes = await fetch(playlistUrl);
   if (!playlistRes.ok) {
     throw new Error(`Failed to fetch playlist items. YouTube API responded with status ${playlistRes.status}`);
@@ -88,7 +82,7 @@ export const fetchChannelVideos = async (channelId, maxResults = 20) => {
   }
 
   // 3. Query video details to get duration and actual live broadcast status
-  const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds.join(',')}&key=${YOUTUBE_API_KEY}`;
+  const videosUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds.join(',')}&key=${apiKey}`;
   const videosRes = await fetch(videosUrl);
   if (!videosRes.ok) {
     throw new Error(`Failed to fetch video details. YouTube API responded with status ${videosRes.status}`);
