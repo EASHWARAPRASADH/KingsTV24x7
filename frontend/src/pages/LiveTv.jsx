@@ -12,7 +12,7 @@ const LiveTv = () => {
   const DEFAULT_LIVE_VIDEO = {
     title: lang === 'en' ? 'KINGS 24x7 Live Broadcast' : 'கிங்ஸ் 24x7 நேரலை ஒளிபரப்பு',
     description: lang === 'en' ? 'Watch continuous live news coverage in Tamil and English.' : 'தமிழக செய்திகளின் நேரடி ஒளிபரப்பு.',
-    youtubeUrl: 'https://www.youtube.com/embed/2g811Eo7K8U',
+    youtubeUrl: 'https://www.youtube.com/embed/hw7Fjh6mncQ',
     isLiveTv: 1
   };
 
@@ -35,7 +35,7 @@ const LiveTv = () => {
   }, [lang]);
 
   const getYoutubeEmbedUrl = (url) => {
-    if (!url) return 'https://www.youtube.com/embed/2g811Eo7K8U';
+    if (!url || url.includes('2g811Eo7K8U')) return 'https://www.youtube.com/embed/hw7Fjh6mncQ?autoplay=1&mute=1';
     if (url.includes('embed/')) {
       return url.includes('?') ? url : `${url}?autoplay=1&mute=1`;
     }
@@ -43,7 +43,7 @@ const LiveTv = () => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     const videoId = (match && match[2] && match[2].length === 11) ? match[2] : null;
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1` : 'https://www.youtube.com/embed/2g811Eo7K8U?autoplay=1&mute=1';
+    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1` : 'https://www.youtube.com/embed/hw7Fjh6mncQ?autoplay=1&mute=1';
   };
 
   if (loading) {

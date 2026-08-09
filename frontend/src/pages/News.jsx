@@ -791,8 +791,8 @@ const News = () => {
                     </div>
                     <div style={{ position: 'relative', width: '100%', height: '175px', borderRadius: '10px', overflow: 'hidden' }}>
                       {(() => {
-                        const rawUrl = liveVideo.youtubeUrl || liveVideo.videoUrl || 'https://www.youtube.com/embed/2g811Eo7K8U';
-                        let srcUrl = 'https://www.youtube.com/embed/2g811Eo7K8U';
+                        const rawUrl = liveVideo?.youtubeUrl || liveVideo?.videoUrl || 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
+                        let srcUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
                         if (rawUrl.includes('embed/')) {
                           srcUrl = rawUrl;
                         } else {
@@ -802,7 +802,7 @@ const News = () => {
                         return (
                           <iframe
                             src={srcUrl}
-                            title={liveVideo.title}
+                            title={liveVideo?.title || 'Kings TV Live'}
                             style={{ width: '100%', height: '100%', border: 'none' }}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
