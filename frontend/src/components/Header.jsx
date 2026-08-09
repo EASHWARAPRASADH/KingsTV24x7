@@ -1655,68 +1655,6 @@ const Header = () => {
         </div>
       )}
 
-      {/* Breaking News Ticker Banner strictly below the black top header bar and above the main nav bar */}
-      <div 
-        className="header-breaking-news-banner"
-        style={{ 
-          display: 'none',
-          background: '#FACC15', 
-          color: '#000000', 
-          padding: '6px 0', 
-          fontSize: '13px', 
-          fontWeight: '700', 
-          borderBottom: '1px solid rgba(0,0,0,0.1)',
-          width: '100%',
-          overflow: 'hidden'
-        }}
-      >
-        <div className="container" style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
-          <span style={{ 
-            background: '#000000', 
-            color: '#FACC15', 
-            padding: '3px 10px', 
-            borderRadius: '4px', 
-            fontSize: '11px', 
-            fontWeight: '900', 
-            letterSpacing: '0.5px', 
-            flexShrink: 0, 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '6px' 
-          }}>
-            <i className="fas fa-bolt" style={{ color: '#FACC15' }}></i> {lang === 'en' ? 'BREAKING NEWS' : 'முக்கிய செய்திகள்'}
-          </span>
-          <div style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-            <marquee behavior="scroll" direction="left" scrollamount="5" style={{ display: 'block', margin: 0, color: '#000000' }}>
-              {breakingNewsList && breakingNewsList.length > 0 ? (
-                breakingNewsList.map((item, idx) => {
-                  const title = lang === 'en' ? (item.titleEn || item.title || item.titleTa) : (item.titleTa || item.title || item.titleEn);
-                  const articleId = item.id || item.article_id;
-                  return (
-                    <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ color: '#DC2626', fontWeight: '900' }}>•</span>
-                      {articleId ? (
-                        <Link to={`/article/${articleId}`} style={{ color: '#000000', textDecoration: 'none' }}>
-                          {title}
-                        </Link>
-                      ) : (
-                        <span>{title}</span>
-                      )}
-                    </span>
-                  );
-                })
-              ) : (
-                fallbackBreakingNews.map((text, idx) => (
-                  <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: '#DC2626', fontWeight: '900' }}>•</span>
-                    <span>{text}</span>
-                  </span>
-                ))
-              )}
-            </marquee>
-          </div>
-        </div>
-      </div>
 
       {/* Horizontal scrollable category navigation bar in single line */}
       <style>{`
@@ -1799,6 +1737,68 @@ const Header = () => {
           {renderScrollNavMenu()}
         </div>
       </nav>
+
+      {/* Breaking News Ticker Banner strictly below the main nav bar */}
+      <div 
+        className="header-breaking-news-banner"
+        style={{ 
+          background: '#FACC15', 
+          color: '#000000', 
+          padding: '6px 0', 
+          fontSize: '13px', 
+          fontWeight: '700', 
+          borderBottom: '1px solid rgba(0,0,0,0.1)',
+          width: '100%',
+          overflow: 'hidden'
+        }}
+      >
+        <div className="container" style={{ display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
+          <span style={{ 
+            background: '#000000', 
+            color: '#FACC15', 
+            padding: '3px 10px', 
+            borderRadius: '4px', 
+            fontSize: '11px', 
+            fontWeight: '900', 
+            letterSpacing: '0.5px', 
+            flexShrink: 0, 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '6px' 
+          }}>
+            <i className="fas fa-bolt" style={{ color: '#FACC15' }}></i> {lang === 'en' ? 'BREAKING NEWS' : 'முக்கிய செய்திகள்'}
+          </span>
+          <div style={{ flex: 1, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+            <marquee behavior="scroll" direction="left" scrollamount="5" style={{ display: 'block', margin: 0, color: '#000000' }}>
+              {breakingNewsList && breakingNewsList.length > 0 ? (
+                breakingNewsList.map((item, idx) => {
+                  const title = lang === 'en' ? (item.titleEn || item.title || item.titleTa) : (item.titleTa || item.title || item.titleEn);
+                  const articleId = item.id || item.article_id;
+                  return (
+                    <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: '#DC2626', fontWeight: '900' }}>•</span>
+                      {articleId ? (
+                        <Link to={`/article/${articleId}`} style={{ color: '#000000', textDecoration: 'none' }}>
+                          {title}
+                        </Link>
+                      ) : (
+                        <span>{title}</span>
+                      )}
+                    </span>
+                  );
+                })
+              ) : (
+                fallbackBreakingNews.map((text, idx) => (
+                  <span key={idx} style={{ marginRight: '32px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ color: '#DC2626', fontWeight: '900' }}>•</span>
+                    <span>{text}</span>
+                  </span>
+                ))
+              )}
+            </marquee>
+          </div>
+        </div>
+      </div>
 
       {/* Side Drawer Panel */}
       <div
