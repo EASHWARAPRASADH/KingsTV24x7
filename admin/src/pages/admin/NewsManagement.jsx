@@ -51,7 +51,7 @@ const NewsManagement = () => {
       const params = new URLSearchParams({
         page,
         size: 12,
-        sortBy: 'publishedAt',
+        sortBy: 'id',
         direction: 'desc',
       });
       if (search) params.set('search', search);
