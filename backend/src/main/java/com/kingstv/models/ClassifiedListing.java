@@ -97,6 +97,9 @@ public class ClassifiedListing {
     @Column(name = "contact_info", nullable = false)
     private String contactInfo = "N/A";
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @PrePersist
     @PreUpdate
     public void onUpdate() {
@@ -231,5 +234,12 @@ public class ClassifiedListing {
     public void setContactInfo(String contactInfo) {
         this.contactInfo = contactInfo;
         this.contactPhone = contactInfo;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }
