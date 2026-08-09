@@ -1062,16 +1062,12 @@ const Header = () => {
                   display: 'inline-block'
                 }}
               >
-                {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? (
-                  <img 
-                    src={homeIcon} 
-                    alt="Home" 
+                {(item.id === 'home' || item.slug === 'home' || item.path === '/' || (item.label && (item.label.toLowerCase() === 'home' || item.label === 'முகப்பு'))) ? (
+                  <i 
+                    className="fas fa-home" 
                     style={{ 
-                      height: '20px', 
-                      width: 'auto', 
-                      display: 'inline-block', 
-                      verticalAlign: 'middle',
-                      filter: theme === 'dark' ? 'none' : 'invert(1)'
+                      fontSize: '16px', 
+                      verticalAlign: 'middle'
                     }} 
                   />
                 ) : item.label}
@@ -1394,19 +1390,14 @@ const Header = () => {
                     flex: 1
                   }}
                 >
-                  {(item.id === 'home' || item.slug === 'home' || item.path === '/') ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                      <img 
-                        src={homeIcon} 
-                        alt="Home" 
-                        style={{ 
-                          height: '20px', 
-                          width: 'auto', 
-                          filter: theme === 'dark' ? 'none' : 'invert(1)'
-                        }} 
-                      />
-                      <span>{item.label}</span>
-                    </span>
+                  {(item.id === 'home' || item.slug === 'home' || item.path === '/' || (item.label && (item.label.toLowerCase() === 'home' || item.label === 'முகப்பு'))) ? (
+                    <i 
+                      className="fas fa-home" 
+                      style={{ 
+                        fontSize: '16px', 
+                        verticalAlign: 'middle'
+                      }} 
+                    />
                   ) : item.label}
                 </Link>
               </div>
@@ -1668,7 +1659,6 @@ const Header = () => {
       <div 
         className="header-breaking-news-banner"
         style={{ 
-          display: 'none',
           background: '#FACC15', 
           color: '#000000', 
           padding: '6px 0', 

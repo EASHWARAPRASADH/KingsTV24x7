@@ -747,7 +747,54 @@ const Home = () => {
     );
   };
 
-  const renderNewsTicker = () => null;
+  const renderNewsTicker = () => {
+    const activeTickers = tickers.length > 0 ? tickers : (lang === 'en' ? [
+      "Heavy rain warning in Tamil Nadu starting tomorrow - Meteorological Department",
+      "India vs Pakistan Cricket Match begins today at 3 PM",
+      "Gold price per sovereign reduced by Rs. 400 - Today's rates",
+      "Chennai Super Kings qualifies for playoff round with a grand victory"
+    ] : [
+      "தமிழகத்தில் நாளை முதல் கனமழை எச்சரிக்கை - வானிலை மையம் அறிவிப்பு",
+      "இந்தியா - பாகிஸ்தான் கிரிக்கெட் போட்டி இன்று மாலை 3 மணிக்கு தொடக்கம்",
+      "ஆபரணத் தங்கத்தின் விலை சவரனுக்கு ரூ.400 குறைந்தது - இன்றைய நிலவரம்",
+      "சென்னை சூப்பர் கிங்ஸ் அணி அபார வெற்றியுடன் பிளே-ஆஃப் சுற்றுக்கு தகுதி"
+    ]);
+
+    return (
+      <div className="breaking-news-wrapper" style={{ background: '#FACC15', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', height: '42px', overflow: 'hidden' }}>
+          <div style={{ background: '#000000', color: '#FACC15', padding: '0 16px', height: '100%', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '800', fontSize: '12px', letterSpacing: '0.5px', textTransform: 'uppercase', flexShrink: 0 }}>
+            <span style={{ width: '8px', height: '8px', background: '#FACC15', borderRadius: '50%', display: 'inline-block', animation: 'pulse-live 1.2s infinite' }}></span>
+            {lang === 'en' ? 'BREAKING' : 'முக்கிய செய்தி'}
+          </div>
+          
+          <div style={{ flex: 1, overflow: 'hidden', padding: '0 16px', whiteSpace: 'nowrap' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '24px', fontSize: '13px', fontWeight: '600', color: '#000000' }}>
+              <span style={{ color: '#DC2626' }}>⚡</span>
+              <span>{activeTickers[tickerIndex % activeTickers.length]}</span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingRight: '10px', flexShrink: 0 }}>
+            <button 
+              onClick={() => setTickerIndex(prev => (prev - 1 + activeTickers.length) % activeTickers.length)}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#000000', border: 'none', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
+              title="Previous"
+            >
+              <i className="fas fa-chevron-left"></i>
+            </button>
+            <button 
+              onClick={() => setTickerIndex(prev => (prev + 1) % activeTickers.length)}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#000000', border: 'none', color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}
+              title="Next"
+            >
+              <i className="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderHero = (config = {}, customLabel = null) => {
     const filterCatId = config.categoryId ? String(config.categoryId) : null;
