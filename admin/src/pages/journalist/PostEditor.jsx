@@ -39,13 +39,19 @@ const callGemini = async (prompt) => {
     || (import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY)
     || DEFAULT_GEMINI_KEY;
   if (!apiKey) {
-    throw new Error('Gemini API Key is missing. Please click "🔑 Set API Key" in the AI banner to enter your key.');
+    throw new Error('Gemini API Key is missing. Please enter your API Key in System Settings.');
   }
 
-  const configuredModel = (!activeAiConfig.model || activeAiConfig.model === 'gemini-1.5-pro' || activeAiConfig.model === 'gemini-1.5-flash') ? 'gemini-2.0-flash' : activeAiConfig.model;
+  const promptText = (prompt || '').trim();
+  if (!promptText) {
+    throw new Error('AI Prompt is empty. Please enter an article title or notes for AI generation.');
+  }
+
+  const configuredModel = (!activeAiConfig.model || activeAiConfig.model.includes('1.5')) ? 'gemini-2.0-flash' : activeAiConfig.model;
   const modelsToTry = [
     configuredModel,
     'gemini-2.0-flash',
+    'gemini-flash-latest',
     'gemini-2.5-flash'
   ];
   
@@ -890,9 +896,10 @@ const PostEditor = () => {
     setAiGeneratingDraft(true);
     setAiDraftProgress('Reading source & generating draft...');
     
-    const baseContent = sourceTexts || form.contentTa || form.contentEn;
+    const baseContent = sourceTexts || form.contentTa || form.contentEn || form.titleTa || form.titleEn;
     const catNames = categories.map(c => `${c.id}:${c.nameEn || c.name}`).join(', ');
-    
+    const prompt = `You are a professional news journalist and editor for Kings 24x7. Analyze and expand this raw news note into a full draft:\n"${baseContent.substring(0, 4000)}"\nAvailable Categories: [${catNames}]\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, excerptTa, excerptEn, seoTitle, metaDescription, metaKeywords, focusKeywords, slug, categoryId.`;
+
     try {
       const draftPrompt = `You are a professional Tamil & English news editor for Kings 24x7. Generate a complete news article from this raw content:\n"${baseContent.substring(0, 4000)}"\nAvailable Categories: [${catNames}]\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa (HTML), contentEn (HTML), excerptTa, excerptEn, seoTitle, metaDescription, metaKeywords, focusKeywords, slug, categoryId.`;
 
