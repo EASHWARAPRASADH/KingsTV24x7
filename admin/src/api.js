@@ -43,7 +43,7 @@ api.interceptors.response.use(
     if (error.config && error.config.url && error.config.url.includes('/auth/login')) {
       return Promise.reject(error);
     }
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    if (error.response && error.response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('admin_token');
       localStorage.removeItem('user');
