@@ -5,7 +5,7 @@ const getApiBase = () => {
   if (import.meta.env.VITE_API_BASE && !import.meta.env.VITE_API_BASE.includes('localhost')) {
     return import.meta.env.VITE_API_BASE;
   }
-  return 'https://kings-tv.onrender.com/api/v1';
+  return '/api/v1';
 };
 
 const getBaseServer = () => {
@@ -15,7 +15,7 @@ const getBaseServer = () => {
   if (import.meta.env.VITE_SERVER_BASE && !import.meta.env.VITE_SERVER_BASE.includes('localhost')) {
     return import.meta.env.VITE_SERVER_BASE;
   }
-  return 'https://kings-tv.onrender.com';
+  return '';
 };
 
 export const SERVER_BASE = getBaseServer();

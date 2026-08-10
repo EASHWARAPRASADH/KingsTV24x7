@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { DistrictContext } from '../context/DistrictContext';
-import districtDummyNews from '../data/districtDummyNews';
 import { fetchApi, getImageUrl } from '../utils/api';
 import { resolveHandleToChannelId, fetchChannelVideos } from '../services/youtubeService';
 import { generateBlockStyles } from '../utils/styleHelper';
@@ -99,7 +98,7 @@ const Home = () => {
       })
       .catch(err => console.warn("Could not load categories", err));
 
-    const pArticles = fetchApi('/articles/getAll?size=50&sortBy=publishedAt&direction=desc')
+    const pArticles = fetchApi('/articles/getAllWeb?size=50&sortBy=publishedAt&direction=desc')
       .then(data => {
         const list = Array.isArray(data) ? data : (data?.content || []);
         setArticles(list);
@@ -329,9 +328,9 @@ const Home = () => {
 
     // Geolocation Personalized Articles
     const selectedDistId = localStorage.getItem('selectedDistrictId');
-    let newsUrl = '/public/news?limit=12';
+    let newsUrl = '/articles/getAllWeb?size=12&sortBy=publishedAt&direction=desc';
     if (selectedDistId) {
-      newsUrl = `/articles/getAllWeb?districtId=${selectedDistId}&size=12`;
+      newsUrl = `/articles/getAllWeb?districtId=${selectedDistId}&size=12&sortBy=publishedAt&direction=desc`;
     }
 
     const pPersonalized = new Promise((resolve) => {
@@ -584,8 +583,7 @@ const Home = () => {
     });
   };
 
-  const districtNewsPool = districtDummyNews[district] || districtDummyNews['சென்னை'] || [];
-  const displayArticles = districtNewsPool.length > 0 ? [...districtNewsPool, ...articles] : (articles || []);
+  const displayArticles = articles || [];
   const displayVideos = videos || [];
   const displayCrowd = crowdReports || [];
   const displayInstitution = institutionNews || [];
@@ -887,7 +885,8 @@ const Home = () => {
       ? displayArticles.filter(a => String(a.categoryId) === String(filterCatId))
       : displayArticles;
     const limit = config.limit ? parseInt(config.limit) : 6;
-    const activeGrid = (filtered && filtered.length > 0 ? filtered : displayArticles).slice(0, limit);
+    const activeGrid = (filterCatId ? filtered : displayArticles).slice(0, limit);
+    if (!activeGrid || activeGrid.length === 0) return null;
     const titleText = customLabel || (lang === 'en' ? 'Latest News' : 'சமீபத்திய செய்திகள்');
 
     return (
@@ -923,6 +922,135 @@ const Home = () => {
                     <span><i className="far fa-clock"></i> 1 Hr Ago</span>
                     <span><i className="far fa-eye"></i> {art.viewsCount || 340}</span>
                     <span><i className="far fa-clock"></i> {lang === 'en' ? `${art.readingTime || 1} Min Read` : `${art.readingTime || 1} நிமிட வாசிப்பு`}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
+  };
+
+  const renderCategorySection = (targetCatId, titleText, iconClass = 'fa-newspaper', iconColor = 'var(--primary)', limit = 6) => {
+    const targetIdStr = String(targetCatId);
+    const catArticles = displayArticles.filter(a => String(a.categoryId) === targetIdStr);
+    
+    if (!catArticles || catArticles.length === 0) return null;
+
+    return (
+      <section className="news-section">
+        <div className="section-title">
+          <h2><i className={`fas ${iconClass}`} style={{ color: iconColor, marginRight: '8px' }}></i> {titleText}</h2>
+        </div>
+        <div className="news-grid-3">
+          {catArticles.slice(0, limit).map((art, idx) => {
+            const gridCat = getCategoryDetails(art.categoryId);
+            return (
+              <div className={`news-card theme-${gridCat.slug}`} key={art.id || art.article_id || idx}>
+                <div 
+                  className="card-img" 
+                  style={{ 
+                    background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[idx % gradients.length] 
+                  }}
+                >
+                  <span className="cat-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
+                    {lang === 'en' ? gridCat.en : gridCat.ta}
+                  </span>
+                </div>
+                <div className="card-body">
+                  <h3>
+                    <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {lang === 'en' ? (art.titleEn || art.titleTa) : (art.titleTa || art.titleEn)}
+                    </Link>
+                  </h3>
+                  <p>
+                    {lang === 'en' ? (art.shortDescEn || art.shortDescTa) : (art.shortDescTa || art.shortDescEn)}
+                  </p>
+                  <div className="card-meta">
+                    <span><i className="far fa-clock"></i> 1 Hr Ago</span>
+                    <span><i className="far fa-eye"></i> {art.viewsCount || 340}</span>
+                    <span><i className="far fa-clock"></i> {lang === 'en' ? `${art.readingTime || 1} Min Read` : `${art.readingTime || 1} நிமிட வாசிப்பு`}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
+  };
+
+  const renderOpinionPoll = (customLabel = null) => {
+    const titleText = customLabel || (lang === 'en' ? 'Opinion Poll' : 'கருத்துக்கணிப்பு');
+    return (
+      <section className="news-section">
+        <div className="section-title">
+          <h2><i className="fas fa-poll" style={{ color: '#8B5CF6', marginRight: '8px' }}></i> {titleText}</h2>
+        </div>
+        <div style={{ background: '#FFFFFF', borderRadius: '12px', padding: '20px', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: 700 }}>
+            {lang === 'en' ? '2026 Assembly Elections: Which issue is most critical for your constituency?' : '2026 சட்டமன்றத் தேர்தல்: உங்கள் தொகுதியில் எந்தப் பிரச்சினை மிக முக்கியமானது?'}
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {[
+              { id: 'opt1', en: 'Employment & Skill Development', ta: 'வேலைவாய்ப்பு & திறன் மேம்பாடு' },
+              { id: 'opt2', en: 'Infrastructure & Transportation', ta: 'உட்கட்டமைப்பு & போக்குவரத்து' },
+              { id: 'opt3', en: 'Healthcare & Education Facilities', ta: 'சுகாதாரம் & கல்வி வசதிகள்' },
+              { id: 'opt4', en: 'Agriculture & Water Management', ta: 'விவசாயம் & நீர் மேலாண்மை' }
+            ].map(opt => (
+              <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '8px', border: '1px solid #F1F5F9', background: '#F8FAFC', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                <input type="radio" name="homePoll" value={opt.id} style={{ accentColor: '#2563EB' }} />
+                <span>{lang === 'en' ? opt.en : opt.ta}</span>
+              </label>
+            ))}
+          </div>
+          <button style={{ marginTop: '14px', background: '#2563EB', color: '#FFF', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '13px' }}>
+            {lang === 'en' ? 'Submit Vote' : 'வாக்களிக்கவும்'}
+          </button>
+        </div>
+      </section>
+    );
+  };
+
+  const renderDistrictNewsSection = (customLabel = null) => {
+    const districtArticles = displayArticles.filter(a => a.districtId || a.district_id || a.subcategoryId);
+    const pool = districtArticles.length > 0 ? districtArticles : [];
+    if (!pool || pool.length === 0) return null;
+    const titleText = customLabel || (lang === 'en' ? 'District News' : 'மாவட்டச் செய்திகள்');
+
+    return (
+      <section className="news-section">
+        <div className="section-title">
+          <h2><i className="fas fa-map-marked-alt" style={{ color: '#EC4899', marginRight: '8px' }}></i> {titleText}</h2>
+        </div>
+        <div className="news-grid-3">
+          {pool.slice(0, 6).map((art, idx) => {
+            const gridCat = getCategoryDetails(art.categoryId);
+            return (
+              <div className={`news-card theme-${gridCat.slug}`} key={art.id || art.article_id || idx}>
+                <div 
+                  className="card-img" 
+                  style={{ 
+                    background: getImageUrl(art) ? `url(${getImageUrl(art)}) center/cover` : gradients[idx % gradients.length] 
+                  }}
+                >
+                  <span className="cat-badge" style={{ background: 'var(--category-color, var(--primary))' }}>
+                    {lang === 'en' ? gridCat.en : gridCat.ta}
+                  </span>
+                </div>
+                <div className="card-body">
+                  <h3>
+                    <Link to={`/article/${art.id || art.article_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {lang === 'en' ? (art.titleEn || art.titleTa) : (art.titleTa || art.titleEn)}
+                    </Link>
+                  </h3>
+                  <p>
+                    {lang === 'en' ? (art.shortDescEn || art.shortDescTa) : (art.shortDescTa || art.shortDescEn)}
+                  </p>
+                  <div className="card-meta">
+                    <span><i className="far fa-clock"></i> 1 Hr Ago</span>
+                    <span><i className="far fa-eye"></i> {art.viewsCount || 340}</span>
                   </div>
                 </div>
               </div>
@@ -1335,26 +1463,7 @@ const Home = () => {
     );
   };
 
-  const getRenderedSection = (key) => {
-    switch (key) {
-      case 'news_ticker': return renderNewsTicker();
-      case 'hero': return renderHero();
-      case 'quick_access': return renderQuickAccess();
-      case 'latest_news': return renderLatestNews();
-      case 'video_news': return renderVideoNews();
-      case 'web_stories': return renderWebStories();
-      case 'crowd_reporter_highlight': return renderCrowdReporterHighlight();
-      case 'institution_news': return renderInstitutionNews();
-      case 'trending_sidebar': return renderTrendingSidebar();
-      case 'rss_aggregator': return renderRssAggregatedNews();
-      case 'weather': return renderWeather();
-      case 'live_tv': return renderLiveTv();
-      case 'business_case': return null;
-      case 'crowd_reporter': return renderCrowdReporterWidget();
-      case 'news_digest': return renderNewsDigest();
-      default: return null;
-    }
-  };
+
 
   if (error) {
     return (
@@ -1460,6 +1569,14 @@ const Home = () => {
           return renderQuickAccess();
         case 'latest_news':
           return renderLatestNews(config, customLabel);
+        case 'business':
+        case 'district':
+        case 'election':
+          return null;
+        case 'agri':
+          return renderCategorySection(6, customLabel || (lang === 'en' ? 'Agriculture & Market Rates' : 'விவசாயம் & சந்தை நிலவரம்'), 'fa-seedling', '#10B981');
+        case 'poll':
+          return renderOpinionPoll(customLabel);
         case 'video_news':
           return renderVideoNews(config, customLabel);
         case 'web_stories':
@@ -1484,7 +1601,7 @@ const Home = () => {
         case 'newsletter':
           return renderNewsletterStrip();
         default:
-          return renderLatestNews(config, customLabel);
+          return null;
       }
     };
 

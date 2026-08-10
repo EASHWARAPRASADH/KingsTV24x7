@@ -794,11 +794,11 @@ const PostEditor = () => {
 
   const getLiveArticleUrl = () => {
     const mainOrigin = window.location.origin;
-    let baseDomain = 'https://king-tv.test-technoprint.online';
+    let baseDomain = 'https://d3ny6hy96rbdb3.cloudfront.net';
     if (mainOrigin.includes('localhost') || mainOrigin.includes('127.0.0.1')) {
       baseDomain = 'http://localhost:5173';
-    } else if (mainOrigin.includes('test-technoprint.online')) {
-      baseDomain = 'https://king-tv.test-technoprint.online';
+    } else if (mainOrigin.includes('cloudfront.net') || mainOrigin.includes('test-technoprint.online')) {
+      baseDomain = 'https://d3ny6hy96rbdb3.cloudfront.net';
     } else if (mainOrigin.includes('admin')) {
       baseDomain = mainOrigin.replace('admin.', '').replace('/admin', '');
     }

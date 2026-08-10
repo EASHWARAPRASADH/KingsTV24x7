@@ -93,11 +93,13 @@ public class DataSourceConfig {
                     try { ds.close(); } catch (Exception ignored) {}
                 }
                 log.error("CRITICAL: Failed to connect to primary MySQL/TiDB database at {}. Underlying Error: {}", cleanUrl, e.getMessage(), e);
+                String activeProfile = System.getProperty("spring.profiles.active", System.getenv("SPRING_PROFILES_ACTIVE"));
+                boolean isProdEnv = "prod".equalsIgnoreCase(activeProfile);
                 boolean isProductionDb = cleanUrl.contains("tidbcloud.com") || cleanUrl.contains("amazonaws.com") || cleanUrl.contains("rds.amazonaws.com");
-                if (isProductionDb) {
+                if (isProductionDb && isProdEnv) {
                     throw new RuntimeException("CRITICAL: Production cloud database connection failed. Startup aborted to prevent silent fallback to in-memory H2 database and subsequent data loss.", e);
                 }
-                log.warn("Falling back to embedded H2 database for resilient application startup.");
+                log.warn("Primary cloud database unavailable ({}), using fallback embedded H2 database for local development.", e.getMessage());
             }
         } else {
             boolean isProductionDb = cleanUrl.contains("tidbcloud.com") || cleanUrl.contains("amazonaws.com") || cleanUrl.contains("rds.amazonaws.com");

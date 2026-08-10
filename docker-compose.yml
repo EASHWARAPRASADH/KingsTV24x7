@@ -13,8 +13,8 @@ services:
       - SERVER_PORT=8080
       # Override DB & Secret credentials via environment or .env file
       - DB_URL=${DB_URL:-jdbc:mysql://gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/kings_tv_db?sslMode=PREFERRED&useSSL=true}
-      - DB_USERNAME=${DB_USERNAME:-39nIe05iWwP9nUv.root}
-      - DB_PASSWORD=${DB_PASSWORD:-0XvNvh7Xo2hJ8KjA}
+      - DB_USERNAME=${DB_USERNAME:-fayxknEDQC42KGU.root}
+      - DB_PASSWORD=${DB_PASSWORD:-iOKECsOtE7vU4rzC}
       - JWT_SECRET=${JWT_SECRET:-9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b}
     ports:
       - "8080:8080"

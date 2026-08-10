@@ -1,0 +1,16 @@
+FROM alpine:3.19
+RUN apk add --no-cache openjdk17-jre-headless curl
+WORKDIR /app
+RUN curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_aa" \
+ && curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_ab" \
+ && curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_ac" \
+ && curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_ad" \
+ && curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_ae" \
+ && curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_af" \
+ && curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_ag" \
+ && curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_ah" \
+ && curl -sO "https://kingstv-media-bucket-535252060801.s3.ap-south-1.amazonaws.com/chunks/jar_part_ai" \
+ && cat jar_part_* > app.jar \
+ && rm jar_part_*
+EXPOSE 8080
+ENTRYPOINT ["java", "-Xmx512m", "-Xms256m", "-jar", "app.jar"]

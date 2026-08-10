@@ -11,3 +11,15 @@ target/
 backend/uploads/backups/
 *.log
 backend/*.log
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+
+# Sensitive / secrets - never commit
+.aws/
+*.pem
+*.key
+terraform.zip
+bin/
+backend/uploads/general/

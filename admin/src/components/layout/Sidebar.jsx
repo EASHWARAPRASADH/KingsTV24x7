@@ -115,14 +115,14 @@ const Sidebar = () => {
     const host = window.location.hostname;
     return (host === 'localhost' || host === '127.0.0.1')
       ? 'http://localhost:5173'
-      : 'https://king-tv.test-technoprint.online/';
+      : 'https://d3ny6hy96rbdb3.cloudfront.net/';
   };
 
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
         <Link to="/admin/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', width: '100%' }}>
-          <img src="/admin/assets/logo-banner-light.png" onError={(e) => { e.target.style.display = 'none'; }} alt="King TV Admin" style={{ maxHeight: '52px', width: 'auto', objectFit: 'contain' }} />
+          <img src="/assets/logo-banner-light.png" onError={(e) => { e.target.style.display = 'none'; }} alt="King TV Admin" style={{ maxHeight: '52px', width: 'auto', objectFit: 'contain' }} />
         </Link>
       </div>
       

@@ -2,7 +2,6 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { fetchApi, getImageUrl, API_BASE } from '../utils/api';
-import districtDummyNews from '../data/districtDummyNews';
 import AdWidget from '../components/AdWidget';
 import SkeletonLoader from '../components/SkeletonLoader';
 
@@ -242,40 +241,6 @@ const ArticleDetail = () => {
       .catch(() => setComments([]));
   };
 
-  const findDummyArticle = (artId) => {
-    if (!districtDummyNews) return null;
-    for (const key of Object.keys(districtDummyNews)) {
-      const found = districtDummyNews[key].find(item => String(item.id) === String(artId));
-      if (found) {
-        return {
-          id: found.id,
-          categoryId: 1,
-          titleTa: found.titleTa,
-          titleEn: found.titleEn,
-          descTa: found.shortDescTa,
-          descEn: found.shortDescEn,
-          contentTa: `<p style="font-size:17px; line-height:1.8;">${found.shortDescTa}</p><p style="font-size:17px; line-height:1.8;">இந்த செய்தி ${key} மாவட்டத்திற்கான சிறப்பு செய்தியாகும். மேலும் விவரங்கள் விரைவில் புதுப்பிக்கப்படும்.</p>`,
-          contentEn: `<p style="font-size:17px; line-height:1.8;">${found.shortDescEn}</p><p style="font-size:17px; line-height:1.8;">This is a special regional news report for ${key} district. Further updates will be published shortly.</p>`,
-          authorName: 'Kings TV News Desk',
-          authorNameEn: 'Kings TV News Desk',
-          authorRole: 'செய்தியாளர்',
-          authorRoleEn: 'News Reporter',
-          pubDate: new Date().toLocaleDateString(),
-          updDate: new Date().toLocaleDateString(),
-          readTime: '2 நிமிட வாசிப்பு',
-          readTimeEn: '2 Min Read',
-          categoryName: found.categoryTa || 'செய்திகள்',
-          categoryNameEn: found.categoryEn || 'News',
-          categorySlug: found.category || 'news',
-          tags: [key, found.categoryEn || 'News'],
-          imageUrl: found.featuredImage,
-          gradient: 'linear-gradient(135deg, #1E3A8A, #3B82F6)'
-        };
-      }
-    }
-    return null;
-  };
-
   const loadData = () => {
     const catLookup = {
       1: { slug: 'politics', name: 'Politics', nameTa: 'அரசியல்' },
@@ -351,25 +316,12 @@ const ArticleDetail = () => {
             })
             .catch(() => setRelated([]));
         } else {
-          const dummyFound = findDummyArticle(id);
-          if (dummyFound) {
-            setArticle(dummyFound);
-            setRelated([]);
-          } else {
-            setArticle(null);
-            setRelated([]);
-          }
+          setArticle(null);
+          setRelated([]);
         }
         fetchComments();
       })
       .catch(err => {
-        const dummyFound = findDummyArticle(id);
-        if (dummyFound) {
-          setArticle(dummyFound);
-          setRelated([]);
-          fetchComments();
-          return;
-        }
         try {
           const stored = localStorage.getItem('kings_offline_bookmarks');
           if (stored) {

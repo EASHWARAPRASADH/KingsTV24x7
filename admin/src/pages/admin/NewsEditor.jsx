@@ -813,11 +813,11 @@ const NewsEditor = () => {
 
   const getLiveArticleUrl = () => {
     const mainOrigin = window.location.origin;
-    let baseDomain = 'https://king-tv.test-technoprint.online';
+    let baseDomain = 'https://d3ny6hy96rbdb3.cloudfront.net';
     if (mainOrigin.includes('localhost') || mainOrigin.includes('127.0.0.1')) {
       baseDomain = 'http://localhost:5173';
-    } else if (mainOrigin.includes('test-technoprint.online')) {
-      baseDomain = 'https://king-tv.test-technoprint.online';
+    } else if (mainOrigin.includes('cloudfront.net') || mainOrigin.includes('test-technoprint.online')) {
+      baseDomain = 'https://d3ny6hy96rbdb3.cloudfront.net';
     } else if (mainOrigin.includes('admin')) {
       baseDomain = mainOrigin.replace('admin.', '').replace('/admin', '');
     }
@@ -2338,114 +2338,94 @@ RULES FOR TRANSLATION:
                     />
                   </div>
 
-                  {/* Reference Media Upload Toolbar matching user request image */}
+                  {/* Streamlined & Structured Media Toolbar */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justify: 'space-between',
-                    padding: '8px 14px',
+                    justifyContent: 'space-between',
+                    padding: '10px 16px',
                     background: 'var(--bg-secondary, #f8fafc)',
-                    border: '1px solid var(--border-color, #cbd5e1)',
+                    border: '1px solid var(--border-color, #e2e8f0)',
                     borderRadius: '8px 8px 0 0',
                     borderBottom: 'none',
-                    marginTop: '4px',
-                    gap: '10px',
+                    marginTop: '8px',
+                    gap: '12px',
                     flexWrap: 'wrap'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginRight: '4px' }}>
+                        Insert Content:
+                      </span>
+                      
+                      {/* Primary Quick Insert Image */}
                       <button
                         type="button"
                         onClick={() => mediaInputRef.current?.click()}
                         disabled={mediaUploading}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
+                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
                           background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
                           fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.15s'
                         }}
                       >
-                        <ImageIcon size={15} color="#2563EB" /> Add Media
+                        <ImageIcon size={15} color="#2563EB" /> Image
                       </button>
 
+                      {/* Video Button */}
                       <button
                         type="button"
                         onClick={() => setVideoModalOpen(true)}
                         disabled={mediaUploading}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
+                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
                           background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
                           fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.15s'
                         }}
                       >
-                        <Video size={15} color="#0EA5E9" /> Add Video
+                        <Video size={15} color="#0EA5E9" /> Video
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => audioInputRef.current?.click()}
-                        disabled={mediaUploading}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                      >
-                        <Mic size={15} color="#8B5CF6" /> Add Audio
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => docInputRef.current?.click()}
-                        disabled={mediaUploading}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                        }}
-                      >
-                        <FileText size={15} color="#F59E0B" /> Add Document
-                      </button>
-
+                      {/* Audio & Docs Dropdown / Gallery */}
                       <button
                         type="button"
                         onClick={() => setGalleryModalOpen(true)}
                         disabled={mediaUploading}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
+                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
                           background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
                           fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)', transition: 'all 0.15s'
                         }}
                       >
-                        <LayoutTemplate size={15} color="#10B981" /> Create Gallery
+                        <LayoutTemplate size={15} color="#10B981" /> Gallery & Files
                       </button>
 
+                      {/* Unified Library Button */}
                       <button
                         type="button"
                         onClick={() => setMediaSelectModalOpen(true)}
                         disabled={mediaUploading}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px',
-                          background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px',
-                          fontSize: '13px', fontWeight: 600, color: '#1e293b', cursor: 'pointer',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px',
+                          background: '#4F46E5', color: '#ffffff', border: 'none', borderRadius: '6px',
+                          fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(79,70,229,0.25)', transition: 'all 0.15s'
                         }}
                       >
-                        <FolderOpen size={15} color="#4F46E5" /> Choose from Library
+                        <FolderOpen size={15} color="#ffffff" /> Media Library
                       </button>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', color: '#64748b', fontSize: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', color: '#64748b', fontSize: '13px' }}>
                       {mediaUploading ? (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#2563eb' }}>
-                          <Loader2 size={14} className="spin" /> Uploading & inserting...
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#2563eb', fontWeight: 600 }}>
+                          <Loader2 size={14} className="spin" /> Uploading media...
                         </span>
                       ) : (
-                        <span title="Rich Media Toolbar Active" style={{ cursor: 'pointer', padding: '2px 6px', color: '#94a3b8' }}>
-                          ↕
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          Click buttons or drag & drop images into editor
                         </span>
                       )}
                     </div>
@@ -2936,7 +2916,12 @@ RULES FOR TRANSLATION:
           </div>
 
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><LayoutTemplate size={16} /> Featured Image</h3>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <LayoutTemplate size={16} /> Featured Image <span style={{ color: '#ef4444', fontWeight: 700 }}>*</span>
+            </h3>
+            <p style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Primary cover photo shown on website homepage cards and social media link previews.
+            </p>
             <ImageUploadPreview imageUrl={form.featuredImage || form.imageUrl} onUploadSuccess={(url) => {
               set('featuredImage', url);
               set('imageUrl', url);
@@ -2949,25 +2934,34 @@ RULES FOR TRANSLATION:
           </div>
 
           <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}><AlignLeft size={16} /> Taxonomy</h3>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlignLeft size={16} /> Taxonomy & Classification
+            </h3>
+            <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Assign news article to primary section and search tags.
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Category</label>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>
+                  Category <span style={{ color: '#ef4444', fontWeight: 700 }}>*</span>
+                </label>
                 <select value={form.categoryId} onChange={e => set('categoryId', e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
-                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Category</option>
+                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Category (Required)</option>
                   {categories.map(c => <option key={c.id} value={c.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{c.nameTa ? `${c.nameTa} (${c.name || c.nameEn})` : (c.name || c.nameEn)}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>Subcategory</label>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>
+                  Subcategory
+                </label>
                 <select value={form.subcategoryId} onChange={e => set('subcategoryId', e.target.value)} disabled={!subCategories.length} style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px' }}>
-                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Subcategory</option>
+                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select Subcategory (Optional)</option>
                   {subCategories.map(s => <option key={s.subcategoryId || s.id} value={s.subcategoryId || s.id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{s.nameTa ? `${s.nameTa} / ${s.name}` : s.name}</option>)}
                 </select>
               </div>
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block', fontWeight: 600 }}>
-                  News Tags (comma separated) 🌐 (Dual Language / இரு மொழி)
+                  News Tags (comma separated) 🌐
                 </label>
                 <AutoExpandTextarea 
                   value={form.metaKeywords || [form.metaKeywordsTa, form.metaKeywordsEn].filter(Boolean).join(', ')} 

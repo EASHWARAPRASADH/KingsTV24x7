@@ -25,25 +25,25 @@ public class SpecificationBuilder {
 
             if (status != null && !status.isEmpty()) {
                 try {
-                    root.get("status");
+                    root.getModel().getAttribute("status");
                     predicates.add(cb.equal(root.get("status"), status));
-                } catch (Exception e) {
+                } catch (IllegalArgumentException e) {
                     try {
-                        root.get("isActive");
+                        root.getModel().getAttribute("isActive");
                         if ("active".equalsIgnoreCase(status)) {
                             predicates.add(cb.equal(root.get("isActive"), true));
                         } else if ("inactive".equalsIgnoreCase(status)) {
                             predicates.add(cb.equal(root.get("isActive"), false));
                         }
-                    } catch (Exception ex) {
+                    } catch (IllegalArgumentException ex) {
                         // ignore if neither status nor isActive is present
                     }
                 }
             } else {
                 try {
-                    root.get("status");
+                    root.getModel().getAttribute("status");
                     predicates.add(cb.notEqual(root.get("status"), "deleted"));
-                } catch (Exception e) {
+                } catch (IllegalArgumentException e) {
                     // Entity doesn't have a status field, ignore
                 }
             }
@@ -135,10 +135,10 @@ public class SpecificationBuilder {
                 
                 for (String field : textFields) {
                     try {
-                        root.get(field);
+                        root.getModel().getAttribute(field);
                         searchPredicates.add(cb.like(cb.lower(root.get(field)), searchPattern));
-                    } catch (Exception e) {
-                        // Field doesn't exist on this entity, ignore
+                    } catch (IllegalArgumentException e) {
+                        // Field doesn't exist on this entity metamodel, ignore
                     }
                 }
                 

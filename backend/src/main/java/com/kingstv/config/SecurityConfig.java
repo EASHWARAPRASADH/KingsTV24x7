@@ -121,22 +121,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        List<String> origins = Arrays.stream((allowedOrigins != null ? allowedOrigins : "").split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
-
-        if (origins.isEmpty()) {
-            origins = Arrays.asList(
-                "https://king-tv.test-technoprint.online",
-                "https://www.king-tv.test-technoprint.online",
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://localhost:8080"
-            );
-        }
-
-        config.setAllowedOriginPatterns(origins);
+        config.addAllowedOriginPattern("*");
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"));
