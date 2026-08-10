@@ -444,12 +444,32 @@ const AiConfiguration = () => {
                 border: `1px solid ${testResult.success ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
                 background: testResult.success ? 'rgba(16,185,129,0.05)' : 'rgba(239,68,68,0.05)',
                 color: testResult.success ? '#10B981' : '#EF4444',
-                display: 'flex', flexDirection: 'column', gap: '4px'
+                display: 'flex', flexDirection: 'column', gap: '6px'
               }}>
                 <span style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
                   {testResult.success ? '✓ Connection Succeeded' : '✕ Connection Failed'}
                 </span>
                 <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>{testResult.message}</span>
+                
+                {testResult.message && (testResult.message.includes('429') || testResult.message.includes('Quota Exceeded') || testResult.message.includes('depleted')) && (
+                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(239,68,68,0.2)' }}>
+                    <a 
+                      href="https://aistudio.google.com/app/apikey" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        padding: '6px 12px', background: '#EF4444', color: '#fff',
+                        borderRadius: '6px', textDecoration: 'none', fontWeight: 700, fontSize: '0.8rem'
+                      }}
+                    >
+                      🔑 Get a Fresh Free Gemini API Key on Google AI Studio ↗
+                    </a>
+                    <div style={{ fontSize: '0.75rem', marginTop: '6px', color: 'var(--text-muted)' }}>
+                      Paste your new key into <strong>Secret API Authorization Key</strong> above and click <strong>Save & Activate</strong>.
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

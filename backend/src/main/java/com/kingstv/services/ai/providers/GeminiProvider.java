@@ -74,7 +74,11 @@ public class GeminiProvider implements LLMProvider {
             String res = generateContent("say test", config);
             return res != null && !res.isBlank();
         } catch (Exception e) {
-            throw new Exception("Gemini connection test failed: " + e.getMessage(), e);
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("429") || msg.contains("Quota Exceeded") || msg.contains("RESOURCE_EXHAUSTED") || msg.contains("prepayment")) {
+                throw new Exception("Gemini API Quota Exceeded (429). The configured API key has depleted its free credits on Google AI Studio. Please generate a fresh free API key at https://aistudio.google.com/app/apikey");
+            }
+            throw new Exception("Gemini connection test failed: " + msg, e);
         }
     }
 
