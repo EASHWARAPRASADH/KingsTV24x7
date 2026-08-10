@@ -417,8 +417,31 @@ public class AiConfigurationService {
         String titleTa = title;
         String titleEn = title;
         String contentHtml = body.startsWith("<p>") ? body : "<p>" + cleanText + "</p>";
-        String slug = titleEn.toLowerCase().replaceAll("[^a-z0-9\\s]", "").replaceAll("\\s+", "-");
-        if (slug.isEmpty()) slug = "news-update-" + System.currentTimeMillis();
+        
+        // Generate dynamic SEO slug from title or content
+        String slugBase = titleEn.toLowerCase().replaceAll("[^a-z0-9\\s]", "").replaceAll("\\s+", "-").replaceAll("-+", "-").replaceAll("^-|-$", "");
+        if (slugBase.isEmpty()) {
+            // Tamil title transliterated keywords fallback
+            slugBase = "news-article-" + Math.abs(title.hashCode() % 100000);
+        }
+        String slug = slugBase;
+
+        // Extract key words from title & clean text for dynamic focus & meta keywords
+        List<String> textWords = Arrays.stream(cleanText.split("[\\s,.:;!\"'()\\-]+"))
+            .filter(w -> w.length() > 2)
+            .distinct()
+            .toList();
+
+        List<String> taWords = textWords.stream().filter(w -> w.matches(".*[\\u0B80-\\u0BFF].*")).limit(6).toList();
+        List<String> enWords = textWords.stream().filter(w -> w.matches(".*[a-zA-Z].*")).limit(6).toList();
+
+        String kwTa = !taWords.isEmpty() ? String.join(", ", taWords) : "செய்திகள், தமிழ்நாடு, அண்மைச்செய்தி";
+        String kwEn = !enWords.isEmpty() ? String.join(", ", enWords) : "news, tamil nadu, breaking news, latest updates";
+        String focusTa = !taWords.isEmpty() ? String.join(", ", taWords.subList(0, Math.min(3, taWords.size()))) : "செய்திகள், தமிழ்நாடு";
+        String focusEn = !enWords.isEmpty() ? String.join(", ", enWords.subList(0, Math.min(3, enWords.size()))) : "news, breaking news";
+
+        String descTa = excerpt.length() > 10 ? excerpt : (cleanText.length() > 150 ? cleanText.substring(0, 150) : cleanText);
+        String descEn = excerpt.length() > 10 ? excerpt : (cleanText.length() > 150 ? cleanText.substring(0, 150) : cleanText);
 
         return String.format("""
             {
@@ -431,19 +454,19 @@ public class AiConfigurationService {
               "shortDescEn": "%s",
               "excerptTa": "%s",
               "excerptEn": "%s",
-              "seoTitle": "%s | Kings 24x7",
-              "metaTitle": "%s | Kings 24x7",
-              "metaTitleTa": "%s | Kings 24x7",
-              "metaTitleEn": "%s | Kings 24x7",
+              "seoTitle": "%s",
+              "metaTitle": "%s",
+              "metaTitleTa": "%s",
+              "metaTitleEn": "%s",
               "metaDescription": "%s",
               "metaDescriptionTa": "%s",
               "metaDescriptionEn": "%s",
-              "focusKeywords": "kings tv, breaking news, tamil nadu news",
-              "focusKeywordsTa": "செய்திகள், தமிழ்நாடு",
-              "focusKeywordsEn": "kings tv, breaking news",
-              "metaKeywords": "news, update, tamil nadu, chennai, kings 24x7",
-              "metaKeywordsTa": "செய்திகள், தமிழ்நாடு, சென்னை",
-              "metaKeywordsEn": "news, update, tamil nadu, chennai",
+              "focusKeywords": "%s",
+              "focusKeywordsTa": "%s",
+              "focusKeywordsEn": "%s",
+              "metaKeywords": "%s",
+              "metaKeywordsTa": "%s",
+              "metaKeywordsEn": "%s",
               "slug": "%s",
               "categoryId": "1",
               "suggestedSource": "Kings TV Desk",
@@ -458,14 +481,20 @@ public class AiConfigurationService {
             escapeJson(excerpt),
             escapeJson(excerpt),
             escapeJson(excerpt),
-            escapeJson(titleEn),
-            escapeJson(titleEn),
+            escapeJson(title),
+            escapeJson(title),
             escapeJson(titleTa),
             escapeJson(titleEn),
-            escapeJson(excerpt),
-            escapeJson(excerpt),
-            escapeJson(excerpt),
-            slug
+            escapeJson(descTa),
+            escapeJson(descTa),
+            escapeJson(descEn),
+            escapeJson(focusEn),
+            escapeJson(focusTa),
+            escapeJson(focusEn),
+            escapeJson(kwEn),
+            escapeJson(kwTa),
+            escapeJson(kwEn),
+            escapeJson(slug)
         );
     }
 

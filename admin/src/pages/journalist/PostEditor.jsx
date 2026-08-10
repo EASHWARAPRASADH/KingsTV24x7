@@ -1191,39 +1191,19 @@ const PostEditor = () => {
         const PLACEHOLDER = 'https://kings24x7.com/assets/placeholder-news.jpg';
         const updatedImg = f.featuredImage || f.imageUrl || firstImg || PLACEHOLDER;
 
-        // ── 3. Meta Description - always ensure 90-160 char value ──────────
-        let metaDescEn = parsed.metaDescriptionEn || parsed.metaDescription || f.metaDescriptionEn || f.metaDescription || '';
-        const titleStr = parsed.titleEn || parsed.titleTa || f.titleEn || f.titleTa || '';
-        const contentSnippet = (parsed.shortDescEn || parsed.shortDescTa || '').substring(0, 100);
-        if (!metaDescEn || metaDescEn.length < 90) {
-          const base = metaDescEn || contentSnippet || titleStr;
-          metaDescEn = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.substring(0, 160);
-        }
+        // ── 3. Meta Description & Meta Title ──────────
+        let metaDescEn = parsed.metaDescriptionEn || parsed.metaDescription || parsed.shortDescEn || f.metaDescriptionEn || '';
+        let metaDescTa = parsed.metaDescriptionTa || parsed.metaDescription || parsed.shortDescTa || f.metaDescriptionTa || '';
 
-        let metaDescTa = parsed.metaDescriptionTa || parsed.metaDescription || f.metaDescriptionTa || '';
-        if (!metaDescTa || metaDescTa.length < 90) {
-          const baseTa = metaDescTa || parsed.shortDescTa || parsed.titleTa || titleStr;
-          metaDescTa = `${baseTa} - கிங்ஸ் 24x7 செய்தித் தளத்தில் அண்மைச் செய்திகள் மற்றும் நேரடிச் செய்திகளை உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.`.substring(0, 160);
-        }
+        let metaTitleTa = parsed.metaTitleTa || parsed.metaTitle || parsed.titleTa || f.titleTa || '';
+        let metaTitleEn = parsed.metaTitleEn || parsed.metaTitle || parsed.titleEn || f.titleEn || '';
 
         // ── 4. Language-specific Meta Keywords & Focus Keywords ──────────
-        let metaKeywordsTa = parsed.metaKeywordsTa || f.metaKeywordsTa || '';
-        if (!metaKeywordsTa || /^[\x00-\x7F]+$/.test(metaKeywordsTa.replace(/[\s,]/g, ''))) {
-          const titleTaWords = (parsed.titleTa || f.titleTa || '').replace(/[^\u0B80-\u0BFF\s]/g, '').split(/\s+/).filter(w => w.length > 2);
-          metaKeywordsTa = titleTaWords.length > 0 ? [...new Set(titleTaWords)].slice(0, 6).join(', ') : 'செய்திகள், தமிழ்நாடு, தமிழ்';
-        }
-
-        let focusKeywordsTa = parsed.focusKeywordsTa || f.focusKeywordsTa || '';
-        if (!focusKeywordsTa || /^[\x00-\x7F]+$/.test(focusKeywordsTa.replace(/[\s,]/g, ''))) {
-          const titleTaWords = (parsed.titleTa || f.titleTa || '').replace(/[^\u0B80-\u0BFF\s]/g, '').split(/\s+/).filter(w => w.length > 2);
-          focusKeywordsTa = titleTaWords.length > 0 ? titleTaWords.slice(0, 3).join(', ') : 'செய்திகள், தமிழ்நாடு';
-        }
+        let metaKeywordsTa = parsed.metaKeywordsTa || f.metaKeywordsTa || 'செய்திகள், தமிழ்நாடு, அண்மைச்செய்தி';
+        let focusKeywordsTa = parsed.focusKeywordsTa || f.focusKeywordsTa || 'செய்திகள், தமிழ்நாடு';
 
         let metaKeywordsEn = parsed.metaKeywordsEn || parsed.metaKeywords || f.metaKeywordsEn || 'news, breaking, tamil nadu';
         let focusKeywordsEn = parsed.focusKeywordsEn || parsed.focusKeywords || f.focusKeywordsEn || 'news, breaking news';
-
-        let metaTitleTa = parsed.metaTitleTa || parsed.titleTa || f.metaTitleTa || f.titleTa || '';
-        let metaTitleEn = parsed.metaTitleEn || parsed.titleEn || f.metaTitleEn || f.titleEn || '';
 
         return {
           ...f,
@@ -1267,6 +1247,63 @@ const PostEditor = () => {
     }
   };
 
+  // ── Helper to Clean and Extract Translation Fields ─────────────────────────
+  const cleanAndExtractTranslation = (rawText) => {
+    let title = '';
+    let excerpt = '';
+    let content = '';
+
+    if (!rawText) return { title, excerpt, content };
+
+    let clean = String(rawText).trim();
+
+    if (clean.startsWith('```json')) {
+      clean = clean.substring(7);
+    } else if (clean.startsWith('```')) {
+      clean = clean.substring(3);
+    }
+    if (clean.endsWith('```')) {
+      clean = clean.substring(0, clean.length - 3);
+    }
+    clean = clean.trim();
+
+    if (clean.startsWith('{') && clean.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(clean);
+        title = parsed.title || parsed.titleEn || parsed.titleTa || '';
+        excerpt = parsed.excerpt || parsed.shortDescEn || parsed.shortDescTa || '';
+        content = parsed.content || parsed.contentEn || parsed.contentTa || '';
+      } catch (e) {
+        console.warn('Failed to parse translation JSON response, falling back to regex extraction:', e);
+      }
+    }
+
+    if (!title && !excerpt && !content) {
+      const tMatch = clean.match(/(?:TITLE|Title|headline):\s*([^\n]+)/i);
+      const eMatch = clean.match(/(?:EXCERPT|Excerpt|summary):\s*([^\n]+)/i);
+      const cMatch = clean.match(/(?:CONTENT|Content|body):\s*([\s\S]+)/i);
+
+      if (tMatch) title = tMatch[1];
+      if (eMatch) excerpt = eMatch[1];
+      if (cMatch) content = cMatch[1];
+
+      if (!title && !excerpt && !content) {
+        content = clean;
+      }
+    }
+
+    const badRegex = /\[Translated Title\]|\[Translated Excerpt\]|\[Translated HTML Paragraphs\]|\[Translated Content\]|Original Text:|Text to Translate:|Source Content:|TITLE:|EXCERPT:|CONTENT:/gi;
+    title = title.replace(badRegex, '').trim();
+    excerpt = excerpt.replace(badRegex, '').trim();
+    content = content.replace(badRegex, '').trim();
+
+    if (content && !content.startsWith('<') && !content.startsWith('&lt;')) {
+      content = `<p>${content}</p>`;
+    }
+
+    return { title, excerpt, content };
+  };
+
   // ── Auto Translate Title, Excerpt, Content ─────────────────────────────────
   const handleAutoTranslate = async (direction) => {
     setIsTranslating(true);
@@ -1276,92 +1313,54 @@ const PostEditor = () => {
       const sourceExcerpt = direction === 'ta2en' ? form.shortDescTa : form.shortDescEn;
       const sourceContent = direction === 'ta2en' ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa) : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
 
-      const baseRaw = `TITLE:\n${sourceTitle || ''}\n\nEXCERPT:\n${sourceExcerpt || ''}\n\nCONTENT:\n${sourceContent || ''}`.trim();
-      if (!baseRaw || baseRaw.length < 5) {
+      if ((!sourceTitle || sourceTitle.length < 2) && (!sourceExcerpt || sourceExcerpt.length < 2) && (!sourceContent || sourceContent.length < 5)) {
         showMsg('Please write some content to translate first.', true);
         setIsTranslating(false);
         return;
       }
 
-      let translatedText = '';
-      let isFallback = false;
+      const inputPayload = JSON.stringify({
+        title: sourceTitle || '',
+        excerpt: sourceExcerpt || '',
+        content: sourceContent || ''
+      });
+
+      let rawResponse = '';
       let backendErrorMsg = '';
       let geminiErrorMsg = '';
+
       try {
         const res = await api.post('/articles/ai-assist', {
           action: 'translate',
           context: direction,
-          text: baseRaw
+          text: inputPayload
         });
-        if (res.data && !res.data.error && res.data.result && !res.data.isFallback) {
-          const resStr = res.data.result;
-          if (direction === 'en2ta' && !/[\u0B80-\u0BFF]/.test(resStr)) {
-            isFallback = true;
-          } else if (direction === 'ta2en' && !/[a-zA-Z]{3,}/.test(resStr.substring(0, 200))) {
-            isFallback = true;
-          } else {
-            translatedText = resStr;
-          }
-        } else {
-          isFallback = true;
-          if (res.data && res.data.result) {
-            backendErrorMsg = res.data.result;
-          }
+        if (res.data && res.data.result) {
+          rawResponse = res.data.result;
         }
       } catch (backendErr) {
         console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
         backendErrorMsg = backendErr.response?.data?.result || backendErr.response?.data?.message || backendErr.message || '';
-        isFallback = true;
       }
 
-      if (!translatedText) {
+      if (!rawResponse) {
         try {
-          const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nRespond EXACTLY in this format with no additional preamble:\nTITLE:\n[Translated Title]\n\nEXCERPT:\n[Translated Excerpt]\n\nCONTENT:\n[Translated HTML Paragraphs]\n\nOriginal Text:\n${baseRaw}`;
-          translatedText = await callGemini(prompt);
+          const prompt = `You are a professional newsroom translation engine for KINGS 24x7 news. Translate the following news content from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nSource Content:\n${inputPayload}\n\nRULES:\n- Preserve HTML structure tags (<p>, <strong>, <em>, <br>).\n- Respond ONLY with a valid JSON object: {"title": "translated title", "excerpt": "translated excerpt", "content": "<p>translated content</p>"}\n- Do NOT include markdown blocks \`\`\`json or text headers like TITLE: or EXCERPT:.`;
+          rawResponse = await callGemini(prompt);
         } catch (geminiErr) {
           console.warn('Direct Gemini fallback failed:', geminiErr);
           geminiErrorMsg = geminiErr.message || '';
         }
       }
-      
-      let newTitle = '';
-      let newExcerpt = '';
-      let newContent = '';
 
-      if (translatedText) {
-        let cleanRes = translatedText
-          .replace(/\n\nOriginal Text:[\s\S]*/i, '')
-          .replace(/\n\nSource Content:[\s\S]*/i, '')
-          .replace(/\n\nSource Text to Translate:[\s\S]*/i, '')
-          .trim();
+      const { title: newTitle, excerpt: newExcerpt, content: newContent } = cleanAndExtractTranslation(rawResponse);
 
-        const titleMatch = cleanRes.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|\n\nCONTENT:|$)/i);
-        const excerptMatch = cleanRes.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
-        const contentMatch = cleanRes.match(/CONTENT:\s*([\s\S]*)$/i);
-
-        if (titleMatch) newTitle = titleMatch[1].replace(/^\[Translated Title\]\s*/i, '').trim();
-        if (excerptMatch) newExcerpt = excerptMatch[1].replace(/^\[Translated Excerpt\]\s*/i, '').trim();
-        if (contentMatch) {
-          newContent = contentMatch[1]
-            .replace(/^\[Translated HTML Paragraphs\]\s*/i, '')
-            .replace(/^\[Translated Content\]\s*/i, '')
-            .trim();
-        }
-
-        if (!newTitle && !newExcerpt && !newContent) {
-          newContent = cleanRes.startsWith('<p>') ? cleanRes : `<p>${cleanRes}</p>`;
-        }
-      }
-
-      if (!translatedText || (!newTitle && !newExcerpt && !newContent)) {
+      if (!newTitle && !newExcerpt && !newContent) {
         let finalError = 'Translation service returned empty content.';
-        if (backendErrorMsg) {
-          finalError += ` (Backend Error: ${backendErrorMsg})`;
-        }
-        if (geminiErrorMsg) {
-          finalError += ` (Direct Fallback Error: ${geminiErrorMsg})`;
-        }
-        showMsg(`Translation error: ${finalError} Please check AI Key settings.`, true);
+        if (backendErrorMsg) finalError += ` (Backend Error: ${backendErrorMsg})`;
+        if (geminiErrorMsg) finalError += ` (Direct Fallback Error: ${geminiErrorMsg})`;
+        showMsg(`Translation error: ${finalError}`, true);
+        setIsTranslating(false);
         return;
       }
 
@@ -1374,7 +1373,9 @@ const PostEditor = () => {
           metaTitleEn: newTitle || f.metaTitleEn,
           metaDescriptionEn: newExcerpt || f.metaDescriptionEn
         }));
-        if (editorRefEn.current && newContent) editorRefEn.current.setContent(newContent);
+        if (editorRefEn.current && newContent) {
+          editorRefEn.current.setContent(newContent);
+        }
       } else {
         setForm(f => ({
           ...f,
@@ -1384,14 +1385,15 @@ const PostEditor = () => {
           metaTitleTa: newTitle || f.metaTitleTa,
           metaDescriptionTa: newExcerpt || f.metaDescriptionTa
         }));
-        if (editorRefTa.current && newContent) editorRefTa.current.setContent(newContent);
+        if (editorRefTa.current && newContent) {
+          editorRefTa.current.setContent(newContent);
+        }
       }
-      
-      showMsg(`✅ Translation completed! Switch to the ${direction === 'ta2en' ? 'English' : 'Tamil'} tab to view translated content.`);
-    } catch (err) {
-      console.error(err);
-      const errDetail = err.response?.data?.message || err.response?.data?.result || err.message || 'Translation failed.';
-      showMsg(`Translation error: ${errDetail}`, true);
+
+      showMsg(`✅ Content translated successfully to ${direction === 'ta2en' ? 'English' : 'Tamil'}!`);
+    } catch (e) {
+      console.error('Translation failed:', e);
+      showMsg('Translation failed: ' + e.message, true);
     } finally {
       setIsTranslating(false);
     }

@@ -1263,57 +1263,20 @@ const NewsEditor = () => {
         const PLACEHOLDER = 'https://kings24x7.com/assets/placeholder-news.jpg';
         const updatedImg = f.featuredImage || f.imageUrl || firstImg || PLACEHOLDER;
 
-        // ── 3. Meta Title - ensure 35-68 chars ──────────
-        let metaTitleEn = parsed.metaTitleEn || parsed.metaTitle || parsed.titleEn || f.titleEn || f.titleTa || '';
-        if (metaTitleEn.length < 35) {
-          metaTitleEn = `${metaTitleEn} | Kings 24x7 Latest News & Updates`.slice(0, 68);
-        }
+        // ── 3. Meta Title & Meta Description ──────────
+        let metaTitleEn = parsed.metaTitleEn || parsed.metaTitle || parsed.titleEn || f.titleEn || '';
+        let metaTitleTa = parsed.metaTitleTa || parsed.metaTitle || parsed.titleTa || f.titleTa || '';
 
-        let metaTitleTa = parsed.metaTitleTa || parsed.metaTitle || parsed.titleTa || f.titleTa || f.titleEn || '';
-        if (metaTitleTa.length < 35) {
-          metaTitleTa = `${metaTitleTa} | கிங்ஸ் 24x7 நேரலைச் செய்திகள்`.slice(0, 68);
-        }
+        let metaDescEn = parsed.metaDescriptionEn || parsed.metaDescription || parsed.shortDescEn || f.metaDescriptionEn || '';
+        let metaDescTa = parsed.metaDescriptionTa || parsed.metaDescription || parsed.shortDescTa || f.metaDescriptionTa || '';
 
-        // ── 4. Meta Description - always ensure 90-160 char value ──────────
-        let metaDescEn = parsed.metaDescriptionEn || parsed.metaDescription || f.metaDescriptionEn || f.metaDescription || '';
-        const titleStr = parsed.titleEn || parsed.titleTa || f.titleEn || f.titleTa || '';
-        const contentSnippet = (parsed.shortDescEn || parsed.shortDescTa || '').substring(0, 100);
-        if (!metaDescEn || metaDescEn.length < 90) {
-          const base = metaDescEn || contentSnippet || titleStr;
-          metaDescEn = `${base} - Get the latest news and live updates on Kings 24x7, your trusted Tamil news source covering Politics, Cinema, Sports, Business, and more.`.slice(0, 160);
-        }
-
-        let metaDescTa = parsed.metaDescriptionTa || parsed.metaDescription || f.metaDescriptionTa || '';
-        if (!metaDescTa || metaDescTa.length < 90) {
-          const baseTa = metaDescTa || parsed.shortDescTa || parsed.titleTa || titleStr;
-          metaDescTa = `${baseTa} - கிங்ஸ் 24x7 செய்தித் தளத்தில் அண்மைச் செய்திகள் மற்றும் நேரடிச் செய்திகளை உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.`.slice(0, 160);
-        }
-
-        // ── 5. Content Depth Expansion (>100 words) ──────────
+        // ── 4. Article Content ──────────
         let finalContentEn = parsed.contentEn || f.contentEn || '';
-        const wordCountEn = finalContentEn.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
-        if (wordCountEn < 100 && finalContentEn) {
-          finalContentEn = `${finalContentEn}<p><strong>Background & Context:</strong> Kings 24x7 brings you reliable, real-time coverage of major events across Tamil Nadu, India, and globally. Our dedicated editorial team ensures verified updates, expert perspectives, and clear insights for our readers.</p>`;
-        }
-
         let finalContentTa = parsed.contentTa || f.contentTa || '';
-        const wordCountTa = finalContentTa.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
-        if (wordCountTa < 100 && finalContentTa) {
-          finalContentTa = `${finalContentTa}<p><strong>செய்திப் பின்னணி & தகவல்கள்:</strong> கிங்ஸ் 24x7 செய்தித் தளம் தமிழ்நாடு, இந்தியா மற்றும் உலகளாவிய செய்திகளை உடனுக்குடன் மற்றும் நம்பகத்தன்மையுடன் வழங்குகிறது. எங்கள் செய்திப் பிரிவின் நேரடித் தகவல்களுடன் செய்திகளைத் தொடர்ந்து உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.</p>`;
-        }
 
-        // ── 6. Language-specific Meta Keywords & Focus Keywords ──────────
-        let metaKeywordsTa = parsed.metaKeywordsTa || f.metaKeywordsTa || '';
-        if (!metaKeywordsTa || /^[\x00-\x7F]+$/.test(metaKeywordsTa.replace(/[\s,]/g, ''))) {
-          const titleTaWords = (parsed.titleTa || f.titleTa || '').replace(/[^\u0B80-\u0BFF\s]/g, '').split(/\s+/).filter(w => w.length > 2);
-          metaKeywordsTa = titleTaWords.length > 0 ? [...new Set(titleTaWords)].slice(0, 6).join(', ') : 'செய்திகள், தமிழ்நாடு, தமிழ்';
-        }
-
-        let focusKeywordsTa = parsed.focusKeywordsTa || f.focusKeywordsTa || '';
-        if (!focusKeywordsTa || /^[\x00-\x7F]+$/.test(focusKeywordsTa.replace(/[\s,]/g, ''))) {
-          const titleTaWords = (parsed.titleTa || f.titleTa || '').replace(/[^\u0B80-\u0BFF\s]/g, '').split(/\s+/).filter(w => w.length > 2);
-          focusKeywordsTa = titleTaWords.length > 0 ? titleTaWords.slice(0, 3).join(', ') : 'செய்திகள், தமிழ்நாடு';
-        }
+        // ── 5. Language-specific Meta Keywords & Focus Keywords ──────────
+        let metaKeywordsTa = parsed.metaKeywordsTa || f.metaKeywordsTa || 'செய்திகள், தமிழ்நாடு, அண்மைச்செய்தி';
+        let focusKeywordsTa = parsed.focusKeywordsTa || f.focusKeywordsTa || 'செய்திகள், தமிழ்நாடு';
 
         let metaKeywordsEn = parsed.metaKeywordsEn || parsed.metaKeywords || f.metaKeywordsEn || 'news, breaking, tamil nadu';
         let focusKeywordsEn = parsed.focusKeywordsEn || parsed.focusKeywords || f.focusKeywordsEn || 'news, breaking news';
