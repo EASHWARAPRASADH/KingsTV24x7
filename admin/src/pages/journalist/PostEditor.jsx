@@ -796,14 +796,14 @@ const PostEditor = () => {
     const mainOrigin = window.location.origin;
     let baseDomain = 'https://d3ny6hy96rbdb3.cloudfront.net';
     if (mainOrigin.includes('localhost') || mainOrigin.includes('127.0.0.1')) {
-      baseDomain = 'http://localhost:5173';
+      baseDomain = `${window.location.protocol}//${window.location.hostname}:5174`;
     } else if (mainOrigin.includes('cloudfront.net') || mainOrigin.includes('test-technoprint.online')) {
       baseDomain = 'https://d3ny6hy96rbdb3.cloudfront.net';
     } else if (mainOrigin.includes('admin')) {
       baseDomain = mainOrigin.replace('admin.', '').replace('/admin', '');
     }
 
-    const artSlug = (form.slug || slugify(form.titleEn || form.titleTa || 'article-title')).toLowerCase();
+    const artSlug = id || (form.slug || slugify(form.titleEn || form.titleTa || 'article-title')).toLowerCase();
     return `${baseDomain}/news/${artSlug}`;
   };
   
