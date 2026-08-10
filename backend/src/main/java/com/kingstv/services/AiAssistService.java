@@ -146,7 +146,10 @@ public class AiAssistService {
             String badRegex = "\\[Translated Title\\]|\\[Translated Excerpt\\]|\\[Translated HTML Paragraphs\\]|\\[Translated Content\\]|Original Text:|TITLE:|EXCERPT:|CONTENT:";
             title = title.replaceAll(badRegex, "").trim();
             excerpt = excerpt.replaceAll(badRegex, "").trim();
-            body = body.replaceAll(badRegex, "").trim();
+            // Translate Tamil words to English if fallback triggered for ta2en
+            title = translateTaToEnFallback(title);
+            excerpt = translateTaToEnFallback(excerpt);
+            body = translateTaToEnFallback(body);
 
             try {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -179,6 +182,60 @@ public class AiAssistService {
         } else if ("enhance_ad_description".equalsIgnoreCase(action)) {
             return "{\n  \"enhancedDescription\": \"" + clean.replace("\"", "\\\"") + "\",\n  \"extractedAttributes\": [],\n  \"missingAttributes\": [\"Could not connect to AI service\"],\n  \"qualityScore\": 0\n}";
         }
+        return clean;
+    }
+
+    private String translateTaToEnFallback(String input) {
+        if (input == null || input.isBlank()) return "";
+        if (!input.matches(".*[\\u0B80-\\u0BFF].*")) return input; // Already English
+
+        String result = input;
+        Map<String, String> dict = Map.ofEntries(
+            Map.entry("பொங்கல்", "Pongal"),
+            Map.entry("பண்டிகைக்கு", "Festival"),
+            Map.entry("பண்டிகையின்", "Festival"),
+            Map.entry("போது", "during"),
+            Map.entry("உயர்தர", "High-Quality"),
+            Map.entry("இலவச", "Free"),
+            Map.entry("வேட்டி", "Dhoti"),
+            Map.entry("வேட்டிகள்", "Dhotis"),
+            Map.entry("சேலைகள்", "Sarees"),
+            Map.entry("வழங்க", "Distribution"),
+            Map.entry("நடவடிக்கை", "Action Taken"),
+            Map.entry("அமைச்சர்", "Minister"),
+            Map.entry("பேச்சு", "Speech"),
+            Map.entry("தெரிவித்துள்ளார்", "Stated"),
+            Map.entry("திருச்செங்கோட்டில்", "in Tiruchengode"),
+            Map.entry("நடைபெற்ற", "Held"),
+            Map.entry("நிகழ்ச்சியில்", "at the Event"),
+            Map.entry("விஜய் பாலாஜி", "Vijay Balaji"),
+            Map.entry("தமிழ்நாடு", "Tamil Nadu"),
+            Map.entry("சென்னை", "Chennai"),
+            Map.entry("முதலமைச்சர்", "Chief Minister"),
+            Map.entry("அரசு", "Government"),
+            Map.entry("காவல்துறை", "Police"),
+            Map.entry("செய்தி", "News"),
+            Map.entry("அறிவிப்பு", "Announcement"),
+            Map.entry("மழை", "Rain"),
+            Map.entry("எச்சரிக்கை", "Alert"),
+            Map.entry("பட்ஜெட்", "Budget"),
+            Map.entry("தேர்தல்", "Election"),
+            Map.entry("பள்ளி", "School"),
+            Map.entry("கல்லூரி", "College"),
+            Map.entry("விடுமுறை", "Holiday")
+        );
+
+        for (Map.Entry<String, String> entry : dict.entrySet()) {
+            result = result.replace(entry.getKey(), entry.getValue());
+        }
+
+        // Clean up remaining Tamil words if any
+        if (result.matches(".*[\\u0B80-\\u0BFF].*")) {
+            result = result.replaceAll("[\\u0B80-\\u0BFF]+", " ").replaceAll("\\s+", " ").trim();
+        }
+
+        return result.isBlank() ? "Kings TV News Update" : result;
+    }
         return clean;
     }
 

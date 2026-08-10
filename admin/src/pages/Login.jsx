@@ -21,10 +21,13 @@ const Login = () => {
       setServerStatus('checking');
       for (let i = 0; i < 5; i++) {
         try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 8000);
           const res = await fetch(api.defaults.baseURL + '/articles/getAll?page=0&size=1', { 
             method: 'GET',
-            signal: AbortSignal.timeout(8000)
+            signal: controller.signal
           });
+          clearTimeout(timer);
           if (!cancelled && res.ok) {
             setServerStatus('online');
             return;

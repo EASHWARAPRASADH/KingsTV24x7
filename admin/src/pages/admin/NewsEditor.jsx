@@ -1442,7 +1442,78 @@ const NewsEditor = () => {
         }
       }
 
-      const { title: newTitle, excerpt: newExcerpt, content: newContent } = cleanAndExtractTranslation(rawResponse);
+      let { title: newTitle, excerpt: newExcerpt, content: newContent } = cleanAndExtractTranslation(rawResponse);
+
+      // ── Target Language Validation Guard ──────────────────────────────────
+      if (direction === 'ta2en') {
+        const hasEnglish = /[a-zA-Z]{3,}/.test((newTitle || '') + ' ' + (newContent || ''));
+        if (!hasEnglish) {
+          console.warn('Backend returned non-English text for ta2en translation. Triggering browser Gemini translation...');
+          try {
+            const prompt = `You are a professional newsroom translation engine for KINGS 24x7 news.
+Translate the following Tamil news article into publication-ready, natural English (AP news style).
+
+Source Title: ${sourceTitle || ''}
+Source Excerpt: ${sourceExcerpt || ''}
+Source Content: ${sourceContent || ''}
+
+RULES:
+- Translate Tamil news text into clear, fluent English.
+- Preserve HTML tags (<p>, <strong>, <em>, <br>).
+- Respond ONLY with a valid JSON object:
+{
+  "title": "English translated headline",
+  "excerpt": "English translated summary",
+  "content": "<p>English translated HTML content</p>"
+}
+- Return ONLY the JSON object without markdown code blocks.`;
+
+            const geminiRaw = await callGemini(prompt);
+            const geminiExtracted = cleanAndExtractTranslation(geminiRaw);
+            if (geminiExtracted.title || geminiExtracted.content) {
+              newTitle = geminiExtracted.title || newTitle;
+              newExcerpt = geminiExtracted.excerpt || newExcerpt;
+              newContent = geminiExtracted.content || newContent;
+            }
+          } catch (geminiErr) {
+            console.error('Direct Gemini translation fallback failed:', geminiErr);
+          }
+        }
+      } else if (direction === 'en2ta') {
+        const hasTamil = /[\u0B80-\u0BFF]/.test((newTitle || '') + ' ' + (newContent || ''));
+        if (!hasTamil) {
+          console.warn('Backend returned non-Tamil text for en2ta translation. Triggering browser Gemini translation...');
+          try {
+            const prompt = `You are a professional newsroom translation engine for KINGS 24x7 news.
+Translate the following English news article into published, natural news Tamil (இலக்கிய/செய்தி தமிழ்).
+
+Source Title: ${sourceTitle || ''}
+Source Excerpt: ${sourceExcerpt || ''}
+Source Content: ${sourceContent || ''}
+
+RULES:
+- Translate English text into natural news Tamil.
+- Preserve HTML tags (<p>, <strong>, <em>, <br>).
+- Respond ONLY with a valid JSON object:
+{
+  "title": "Tamil translated headline",
+  "excerpt": "Tamil translated summary",
+  "content": "<p>Tamil translated HTML content</p>"
+}
+- Return ONLY the JSON object without markdown code blocks.`;
+
+            const geminiRaw = await callGemini(prompt);
+            const geminiExtracted = cleanAndExtractTranslation(geminiRaw);
+            if (geminiExtracted.title || geminiExtracted.content) {
+              newTitle = geminiExtracted.title || newTitle;
+              newExcerpt = geminiExtracted.excerpt || newExcerpt;
+              newContent = geminiExtracted.content || newContent;
+            }
+          } catch (geminiErr) {
+            console.error('Direct Gemini translation fallback failed:', geminiErr);
+          }
+        }
+      }
 
       if (!newTitle && !newExcerpt && !newContent) {
         let finalError = 'Translation service returned empty content.';
