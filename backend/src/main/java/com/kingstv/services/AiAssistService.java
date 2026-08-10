@@ -250,8 +250,6 @@ public class AiAssistService {
 
         return result.isBlank() ? "Kings TV News Update" : result;
     }
-        return clean;
-    }
 
     /**
      * Check if AI is configured and available.
@@ -357,8 +355,7 @@ public class AiAssistService {
                         Text: """.formatted(style) + text;
             }
 
-            case "generate_ad_description" -> {
-                yield """
+            case "generate_ad_description" -> """
                         You are an AI Product Description Assistant for a classifieds marketplace.
                         Your task is to create a dynamic, category-specific product description template.
                         DO NOT automatically write a complete advertisement.
@@ -373,10 +370,8 @@ public class AiAssistService {
                         4. REUSE EXISTING INFO: If the user provided facts, include them in the corresponding fields.
                         5. FORMAT: Use clear headings and bullet points. No prefixes/suffixes. Return ONLY the template text.
                         """;
-            }
 
-            case "enhance_ad_description" -> {
-                yield """
+            case "enhance_ad_description" -> """
                         You are an AI marketplace listing assistant.
                         Analyze the provided Product Title, Category, Subcategory, and User Description.
                         Your task is to create a clear, accurate, category-specific marketplace listing.
@@ -403,10 +398,8 @@ public class AiAssistService {
                           "qualityScore": 85
                         }
                         """;
-            }
 
-            case "categorize_ad" -> {
-                yield """
+            case "categorize_ad" -> """
                         You are an AI Categorization Assistant for a classifieds marketplace.
                         Given an ad title and description, determine the most appropriate Category and Subcategory.
                         
@@ -422,10 +415,8 @@ public class AiAssistService {
                           "subcategoryName": "Best matching subcategory name"
                         }
                         """;
-            }
 
-            case "parse_search_intent" -> {
-                yield """
+            case "parse_search_intent" -> """
                         You are an AI Smart Search parser for a classifieds marketplace.
                         Extract search filters from the user's natural language query.
                         
@@ -440,10 +431,8 @@ public class AiAssistService {
                           "condition": "new/used/null"
                         }
                         """;
-            }
 
-            case "moderate_ad" -> {
-                yield """
+            case "moderate_ad" -> """
                         You are a trust and safety moderator for a classifieds marketplace.
                         Analyze the following ad submission for spam, scams, inappropriate content, or policy violations.
                         
@@ -457,7 +446,6 @@ public class AiAssistService {
                           "reason": "Brief explanation if unsafe, or empty string if safe"
                         }
                         """;
-            }
 
             default -> "You are a helpful assistant. " + text;
         };
