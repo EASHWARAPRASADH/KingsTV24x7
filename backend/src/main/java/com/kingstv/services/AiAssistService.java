@@ -62,6 +62,9 @@ public class AiAssistService {
             if (providerClient != null && activeConfig.getApiKey() != null && !activeConfig.getApiKey().isBlank() && !"[SECURED]".equals(activeConfig.getApiKey())) {
                 String result = providerClient.generateContent(prompt, activeConfig);
                 if (result != null && !result.isBlank()) {
+                    if ("translate".equalsIgnoreCase(action)) {
+                        result = cleanTranslationResult(result);
+                    }
                     return Map.of("error", false, "result", result, "action", action);
                 }
             }
@@ -74,6 +77,20 @@ public class AiAssistService {
         return Map.of("error", false, "isFallback", true, "result", fallbackResult, "action", action);
     }
 
+    private String cleanTranslationResult(String raw) {
+        if (raw == null) return "{\"title\":\"\",\"excerpt\":\"\",\"content\":\"\"}";
+        String cleaned = raw.trim();
+        if (cleaned.startsWith("```json")) {
+            cleaned = cleaned.substring(7);
+        } else if (cleaned.startsWith("```")) {
+            cleaned = cleaned.substring(3);
+        }
+        if (cleaned.endsWith("```")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 3);
+        }
+        return cleaned.trim();
+    }
+
     private String buildFallbackAssistResult(String action, String text) {
         if (text == null) text = "";
         String clean = text.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
@@ -83,7 +100,17 @@ public class AiAssistService {
             String excerpt = "";
             String body = "";
 
-            if (text.contains("TITLE:") || text.contains("EXCERPT:") || text.contains("CONTENT:")) {
+            if (text.startsWith("{") && text.contains("\"")) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    Map map = mapper.readValue(text, Map.class);
+                    title = map.getOrDefault("title", "").toString();
+                    excerpt = map.getOrDefault("excerpt", "").toString();
+                    body = map.getOrDefault("content", "").toString();
+                } catch (Exception ignored) {}
+            }
+
+            if (title.isEmpty() && (text.contains("TITLE:") || text.contains("EXCERPT:") || text.contains("CONTENT:"))) {
                 int titleIdx = text.indexOf("TITLE:");
                 int excerptIdx = text.indexOf("EXCERPT:");
                 int contentIdx = text.indexOf("CONTENT:");
@@ -113,7 +140,22 @@ public class AiAssistService {
                 body = "<p>" + body + "</p>";
             }
 
-            return "TITLE:\n" + title + "\n\nEXCERPT:\n" + excerpt + "\n\nCONTENT:\n" + body;
+            // Strip placeholder text patterns
+            String badRegex = "\\[Translated Title\\]|\\[Translated Excerpt\\]|\\[Translated HTML Paragraphs\\]|\\[Translated Content\\]|Original Text:|TITLE:|EXCERPT:|CONTENT:";
+            title = title.replaceAll(badRegex, "").trim();
+            excerpt = excerpt.replaceAll(badRegex, "").trim();
+            body = body.replaceAll(badRegex, "").trim();
+
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                return mapper.writeValueAsString(Map.of(
+                    "title", title,
+                    "excerpt", excerpt,
+                    "content", body
+                ));
+            } catch (Exception e) {
+                return "{\"title\":\"" + title.replace("\"", "\\\"") + "\",\"excerpt\":\"" + excerpt.replace("\"", "\\\"") + "\",\"content\":\"" + body.replace("\"", "\\\"") + "\"}";
+            }
         } else if ("summarize".equalsIgnoreCase(action)) {
             return clean.length() > 200 ? clean.substring(0, 200) + "..." : clean;
         } else if ("seo".equalsIgnoreCase(action)) {
@@ -214,17 +256,23 @@ public class AiAssistService {
                 String direction = context != null && context.equalsIgnoreCase("en2ta") ? "English to Tamil" : "Tamil to English";
                 yield """
                         You are a chief news editor and professional translator for KINGS 24x7 news channel.
-                        Translate the following text accurately from %s.
+                        Translate the following content accurately from %s.
                         
                         RULES FOR TRANSLATION:
                         1. JOURNALISTIC REGISTER: Use formal, natural, published news language (இலக்கணப்படி அமைந்த செய்தித் தமிழ் for Tamil, AP news style for English). Avoid direct word-for-word machine translation mistakes.
                         2. PROPER NAMES & LOCATIONS: Transliterate place names, politician/celebrity names, and official terms accurately (e.g., Chennai, Tamil Nadu, Chief Minister, High Court).
-                        3. SECTION HEADERS: If the input contains section headers (like TITLE:, EXCERPT:, CONTENT:), translate each section while keeping the exact headers (TITLE:, EXCERPT:, CONTENT:).
-                        4. HTML TAGS: Preserve any HTML tags like <p>, <strong>, <em>, <br> without altering tag structure.
-                        5. OUTPUT: Return ONLY the translated text. Do NOT add preamble, conversational notes, or quotes.
+                        3. HTML TAGS: Preserve all HTML tags like <p>, <strong>, <em>, <ul>, <ol>, <li>, <br> without altering tag structure. Translate text inside HTML without destroying HTML tags.
+                        4. OUTPUT FORMAT: Respond ONLY with a valid JSON object matching this exact schema:
+                        {
+                          "title": "actual translated title",
+                          "excerpt": "actual translated excerpt",
+                          "content": "<p>actual translated content with HTML tags</p>"
+                        }
+                        5. STRICT RULES ON OUTPUT: Do NOT include markdown code blocks like ```json, do NOT include template placeholders like [Translated Excerpt], [Translated HTML Paragraphs], Original Text:, TITLE:, EXCERPT:, or CONTENT:. Return ONLY the JSON object.
                         
-                        Text to Translate:
-                        """.formatted(direction) + text;
+                        Source Content to Translate:
+                        %s
+                        """.formatted(direction, text);
             }
 
             case "rewrite" -> {
