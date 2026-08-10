@@ -26,7 +26,7 @@ public class DataSourceConfig {
     @Value("${spring.datasource.password}")
     private String mysqlPassword;
 
-    @Value("${spring.datasource.driver-class-name}")
+    @Value("${spring.datasource.driver-class-name:}")
     private String mysqlDriver;
 
     @Value("${spring.datasource.hikari.maximum-pool-size:20}")
@@ -62,7 +62,20 @@ public class DataSourceConfig {
                 hikariConfig.setJdbcUrl(cleanUrl);
                 hikariConfig.setUsername(cleanUsername);
                 hikariConfig.setPassword(cleanPassword);
-                hikariConfig.setDriverClassName(mysqlDriver != null && !mysqlDriver.trim().isEmpty() ? mysqlDriver.trim() : "com.mysql.cj.jdbc.Driver");
+
+                String driverClassName = mysqlDriver != null ? mysqlDriver.trim() : "";
+                if (cleanUrl.startsWith("jdbc:mysql:") || cleanUrl.startsWith("jdbc:mariadb:")) {
+                    if (driverClassName.isEmpty() || driverClassName.equalsIgnoreCase("org.h2.Driver")) {
+                        driverClassName = "com.mysql.cj.jdbc.Driver";
+                    }
+                } else if (cleanUrl.startsWith("jdbc:h2:")) {
+                    if (driverClassName.isEmpty() || driverClassName.equalsIgnoreCase("com.mysql.cj.jdbc.Driver")) {
+                        driverClassName = "org.h2.Driver";
+                    }
+                } else if (driverClassName.isEmpty()) {
+                    driverClassName = "com.mysql.cj.jdbc.Driver";
+                }
+                hikariConfig.setDriverClassName(driverClassName);
                 hikariConfig.setMaximumPoolSize(maxPoolSize);
                 hikariConfig.setMinimumIdle(minIdle);
                 hikariConfig.setIdleTimeout(idleTimeout);
