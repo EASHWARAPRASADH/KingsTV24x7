@@ -78,6 +78,9 @@ public class AiAssistService {
         if (cleaned.endsWith("```")) {
             cleaned = cleaned.substring(0, cleaned.length() - 3);
         }
+        cleaned = cleaned.trim();
+        String badRegex = "(?i)^TITLE:\\s*|^EXCERPT:\\s*|^CONTENT:\\s*|^HEADLINE:\\s*|^SUMMARY:\\s*|^SHORT DESCRIPTION:\\s*";
+        cleaned = cleaned.replaceAll(badRegex, "");
         return safeUrlDecode(cleaned.trim());
     }
 
@@ -133,7 +136,7 @@ public class AiAssistService {
             }
 
             // Strip placeholder text patterns
-            String badRegex = "\\[Translated Title\\]|\\[Translated Excerpt\\]|\\[Translated HTML Paragraphs\\]|\\[Translated Content\\]|Original Text:|TITLE:|EXCERPT:|CONTENT:";
+            String badRegex = "(?i)\\[Translated Title\\]|\\[Translated Excerpt\\]|\\[Translated HTML Paragraphs\\]|\\[Translated Content\\]|Original Text:|TITLE:|EXCERPT:|CONTENT:|HEADLINE:|SUMMARY:|SHORT DESCRIPTION:|NEWS ARTICLE:";
             title = title.replaceAll(badRegex, "").trim();
             excerpt = excerpt.replaceAll(badRegex, "").trim();
 
@@ -233,11 +236,6 @@ public class AiAssistService {
 
         for (Map.Entry<String, String> entry : dict.entrySet()) {
             result = result.replace(entry.getKey(), entry.getValue());
-        }
-
-        // Clean up remaining Tamil words if any
-        if (result.matches(".*[\\u0B80-\\u0BFF].*")) {
-            result = result.replaceAll("[\\u0B80-\\u0BFF]+", " ").replaceAll("\\s+", " ").trim();
         }
 
         return result.isBlank() ? "Kings TV News Update" : result;
@@ -467,10 +465,17 @@ public class AiAssistService {
             clean = safeUrlDecode(clean);
             if (clean.length() > 1000) clean = clean.substring(0, 1000);
 
+            String sourceLang = "auto";
+            if (clean.matches(".*[\\u0B80-\\u0BFF].*")) {
+                sourceLang = "ta";
+            } else if ("ta".equals(targetLang)) {
+                sourceLang = "en";
+            }
+
             java.net.URI uri = org.springframework.web.util.UriComponentsBuilder
                     .fromHttpUrl("https://translate.googleapis.com/translate_a/single")
                     .queryParam("client", "gtx")
-                    .queryParam("sl", "auto")
+                    .queryParam("sl", sourceLang)
                     .queryParam("tl", targetLang)
                     .queryParam("dt", "t")
                     .queryParam("q", clean)

@@ -2262,24 +2262,23 @@ REQUIREMENTS:
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                           <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            SEO Meta Title {activeTab === 0 ? '🔴 (தமிழ்)' : '🔵 (English)'}
+                            SEO Meta Title 🌐 (Combined Tamil & English)
                           </label>
                           <span style={{ 
                             fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
-                            background: ((activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || '').length >= 35 && ((activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || '').length <= 70 ? '#D1FAE5' : (((activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || '').length > 70 ? '#FEE2E2' : '#FEF3C7'),
-                            color: ((activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || '').length >= 35 && ((activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || '').length <= 70 ? '#10B981' : (((activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || '').length > 70 ? '#EF4444' : '#F59E0B')
+                            background: (form.metaTitle || '').length >= 35 && (form.metaTitle || '').length <= 80 ? '#D1FAE5' : ((form.metaTitle || '').length > 80 ? '#FEE2E2' : '#FEF3C7'),
+                            color: (form.metaTitle || '').length >= 35 && (form.metaTitle || '').length <= 80 ? '#10B981' : ((form.metaTitle || '').length > 80 ? '#EF4444' : '#F59E0B')
                           }}>
-                            {((activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || '').length} / 60 chars
+                            {(form.metaTitle || '').length} chars
                           </span>
                         </div>
                         <AutoExpandTextarea 
-                          value={(activeTab === 0 ? form.metaTitleTa : form.metaTitleEn) || form.metaTitle || ''} 
+                          value={form.metaTitle || ''} 
                           onChange={e => {
                             const val = e.target.value;
-                            if (activeTab === 0) setForm(f => ({ ...f, metaTitleTa: val, metaTitle: val }));
-                            else setForm(f => ({ ...f, metaTitleEn: val, metaTitle: val }));
+                            setForm(f => ({ ...f, metaTitle: val, metaTitleTa: val, metaTitleEn: val }));
                           }} 
-                          placeholder={activeTab === 0 ? "தேடு பொறிகளுக்கான தலைப்பு (தமிழ்)..." : "Optimized headline for search engines..."}
+                          placeholder="தேடு பொறிகளுக்கான தலைப்பு (இரு மொழி) / SEO Title..."
                           minHeight="46px"
                           maxHeight="180px"
                           style={{ fontSize: '14px', fontWeight: '600' }}
@@ -2308,7 +2307,7 @@ REQUIREMENTS:
                             const cleanSlug = slugify(lastPart);
                             set('slug', cleanSlug);
                           }} 
-                          placeholder="https://kingstv.in/news/category/article-slug"
+                          placeholder="https://king-tv.test-technoprint.online/news/article-slug"
                           minHeight="46px"
                           maxHeight="180px"
                           style={{ fontSize: '13px', fontWeight: '600', color: '#059669', fontFamily: 'monospace' }}
@@ -2319,25 +2318,24 @@ REQUIREMENTS:
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                         <label style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          SEO Meta Description {activeTab === 0 ? '🔴 (தமிழ்)' : '🔵 (English)'}
+                          SEO Meta Description 🌐 (Combined Tamil & English)
                         </label>
                         <span style={{ 
                           fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
-                          background: ((activeTab === 0 ? form.metaDescriptionTa : form.metaDescriptionEn) || form.metaDescription || '').length >= 90 && ((activeTab === 0 ? form.metaDescriptionTa : form.metaDescriptionEn) || form.metaDescription || '').length <= 165 ? '#D1FAE5' : (((activeTab === 0 ? form.metaDescriptionTa : form.metaDescriptionEn) || form.metaDescription || '').length > 165 ? '#FEE2E2' : '#FEF3C7'),
-                          color: ((activeTab === 0 ? form.metaDescriptionTa : form.metaDescriptionEn) || form.metaDescription || '').length >= 90 && ((activeTab === 0 ? form.metaDescriptionTa : form.metaDescriptionEn) || form.metaDescription || '').length <= 165 ? '#10B981' : (((activeTab === 0 ? form.metaDescriptionTa : form.metaDescriptionEn) || form.metaDescription || '').length > 165 ? '#EF4444' : '#F59E0B')
+                          background: (form.metaDescription || '').length >= 90 && (form.metaDescription || '').length <= 200 ? '#D1FAE5' : ((form.metaDescription || '').length > 200 ? '#FEE2E2' : '#FEF3C7'),
+                          color: (form.metaDescription || '').length >= 90 && (form.metaDescription || '').length <= 200 ? '#10B981' : ((form.metaDescription || '').length > 200 ? '#EF4444' : '#F59E0B')
                         }}>
-                          {((activeTab === 0 ? form.metaDescriptionTa : form.metaDescriptionEn) || form.metaDescription || '').length} / 160 chars
+                          {(form.metaDescription || '').length} chars
                         </span>
                       </div>
                       <textarea 
                         rows="3" 
-                        value={activeTab === 0 ? (form.metaDescriptionTa || '') : (form.metaDescriptionEn || form.metaDescription || '')} 
+                        value={form.metaDescription || ''} 
                         onChange={e => {
                           const val = e.target.value;
-                          if (activeTab === 0) setForm(f => ({ ...f, metaDescriptionTa: val, metaDescription: val }));
-                          else setForm(f => ({ ...f, metaDescriptionEn: val, metaDescription: f.metaDescriptionTa ? f.metaDescription : val }));
+                          setForm(f => ({ ...f, metaDescription: val, metaDescriptionTa: val, metaDescriptionEn: val }));
                         }} 
-                        placeholder={activeTab === 0 ? "தேடு முடிவுகளுக்கான தமிழ் சுருக்கம்..." : "Brief search result summary (max 160 chars)..."}
+                        placeholder="தேடு முடிவுகளுக்கான இரு மொழி சுருக்கம் (தமிழ் & English Combined)..."
                         style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)', fontSize: '14px', resize: 'vertical', color: 'var(--text-primary)' }} 
                       />
                     </div>
