@@ -250,6 +250,7 @@ const MediaLibrary = () => {
   const [renaming, setRenaming] = useState(false);
 
   const [toast, setToast] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   const showToast = useCallback((text, isError = false) => {
