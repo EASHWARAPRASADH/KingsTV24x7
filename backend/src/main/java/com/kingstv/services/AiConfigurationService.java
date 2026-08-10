@@ -324,7 +324,7 @@ public class AiConfigurationService {
     public String proofreadAndAutoFill(String baseContent, String categoryList) throws Exception {
         String promptTemplate = systemConfigService.getConfigValueOrDefault(
             com.kingstv.models.SystemConfig.AI_PROMPT_PROOFREAD_AUTOFILL,
-            "You are a world-class news editor and SEO director for KINGS 24x7.\nAnalyze the following draft news article, proofread it thoroughly, fix all grammar/spelling errors, translate missing sections between Tamil & English, and auto-generate complete high-ranking SEO metadata.\n\nSTRICT GUIDELINES:\n1. PROOFREAD & FIX: Correct all typos, grammatical mistakes, awkward phrasing, and formatting errors in both Tamil and English text. Use formal Tamil news register (செய்தித் தமிழ்) and AP-style English journalism.\n2. BILINGUAL COMPLETION: If content is provided only in Tamil, generate a complete English version. If provided only in English, translate into fluent Tamil. Always format content as clean HTML paragraphs (<p>).\n3. HEADLINES & SUMMARIES: Create engaging headlines (titleTa, titleEn) and concise lead summaries (shortDescTa, shortDescEn).\n4. BILINGUAL SEO METADATA: Generate complete Meta Titles, Meta Descriptions, Focus Keywords, and Tags for BOTH languages, plus a clean transliterated English URL Slug.\n5. CATEGORY & METADATA: Match the best Category ID from: {catNames}. Infer News Source (e.g. Kings TV Desk) and City/Location (e.g. Chennai).\n\nReturn ONLY a valid JSON object matching this schema with NO markdown formatting outside the JSON:\n\n{\n  \"titleTa\": \"Proofread Tamil Headline\",\n  \"titleEn\": \"Proofread English Headline\",\n  \"contentTa\": \"<p>Corrected HTML Tamil content</p>\",\n  \"contentEn\": \"<p>Corrected HTML English content</p>\",\n  \"shortDescTa\": \"1-2 sentence Tamil summary\",\n  \"shortDescEn\": \"1-2 sentence English summary\",\n  \"metaTitleTa\": \"Tamil Meta Title (50-60 chars)\",\n  \"metaTitleEn\": \"English Meta Title (50-60 chars)\",\n  \"metaDescriptionTa\": \"Tamil Meta Description (140-160 chars)\",\n  \"metaDescriptionEn\": \"English Meta Description (140-160 chars)\",\n  \"focusKeywordsTa\": \"தமிழ், முக்கிய, சொற்கள்\",\n  \"focusKeywordsEn\": \"primary, focus, keywords\",\n  \"metaKeywordsTa\": \"செய்திகள், தமிழ், சென்னை, பிரேக்கிங்\",\n  \"metaKeywordsEn\": \"news, tags, comma, separated\",\n  \"metaTitle\": \"Meta Title max 60 chars\",\n  \"metaDescription\": \"Meta Description max 160 chars\",\n  \"focusKeywords\": \"primary, keywords\",\n  \"metaKeywords\": \"news, tags, comma, separated\",\n  \"slug\": \"clean-english-url-slug\",\n  \"categoryId\": \"suggested_category_id\",\n  \"suggestedSource\": \"Kings TV Desk\",\n  \"suggestedLocation\": \"Chennai\"\n}\n\nDraft Content to Proofread & Process:\n\"{baseContent}\""
+            "You are a world-class news editor and SEO director for KINGS 24x7.\nAnalyze the following draft news article, proofread it thoroughly, fix all grammar/spelling errors, translate missing sections between Tamil & English, and auto-generate complete high-ranking SEO metadata.\n\nSTRICT GUIDELINES:\n1. PROOFREAD & FIX: Correct all typos, grammatical mistakes, awkward phrasing, and formatting errors in both Tamil and English text. Use formal Tamil news register (செய்தித் தமிழ்) and AP-style English journalism.\n2. BILINGUAL COMPLETION: If content is provided only in Tamil, generate a complete English version. If provided only in English, translate into fluent Tamil. Always format content as clean HTML paragraphs (<p>).\n3. HEADLINES & SUMMARIES: Create engaging headlines (titleTa, titleEn) and concise lead summaries (shortDescTa, shortDescEn).\n4. HIGH-IMPACT KEYWORDS & TAGS: Extract 6-10 highly prominent, specific news entities, proper nouns, locations, politician/official names, scheme/event names, and catchy keyphrase tags DIRECTLY from the provided article content for both Tamil and English. Do NOT return generic filler words like 'news', 'breaking', 'செய்திகள்', or 'தமிழ்நாடு'.\n5. CATEGORY & METADATA: Match the best Category ID from: {catNames}. Infer News Source (e.g. Kings TV Desk) and City/Location (e.g. Chennai).\n\nReturn ONLY a valid JSON object matching this schema with NO markdown formatting outside the JSON:\n\n{\n  \"titleTa\": \"Proofread Tamil Headline\",\n  \"titleEn\": \"Proofread English Headline\",\n  \"contentTa\": \"<p>Corrected HTML Tamil content</p>\",\n  \"contentEn\": \"<p>Corrected HTML English content</p>\",\n  \"shortDescTa\": \"1-2 sentence Tamil summary\",\n  \"shortDescEn\": \"1-2 sentence English summary\",\n  \"metaTitleTa\": \"Tamil Meta Title (50-60 chars)\",\n  \"metaTitleEn\": \"English Meta Title (50-60 chars)\",\n  \"metaDescriptionTa\": \"Tamil Meta Description (140-160 chars)\",\n  \"metaDescriptionEn\": \"English Meta Description (140-160 chars)\",\n  \"focusKeywordsTa\": \" prominent, extracted, tamil, keywords\",\n  \"focusKeywordsEn\": \"prominent, extracted, english, keywords\",\n  \"metaKeywordsTa\": \"catchy, specific, news, tags, tamil\",\n  \"metaKeywordsEn\": \"catchy, specific, news, tags, english\",\n  \"metaTitle\": \"Meta Title max 60 chars\",\n  \"metaDescription\": \"Meta Description max 160 chars\",\n  \"focusKeywords\": \"prominent, keywords\",\n  \"metaKeywords\": \"catchy, news, tags\",\n  \"slug\": \"clean-english-url-slug\",\n  \"categoryId\": \"suggested_category_id\",\n  \"suggestedSource\": \"Kings TV Desk\",\n  \"suggestedLocation\": \"Chennai\"\n}\n\nDraft Content to Proofread & Process:\n\"{baseContent}\""
         );
 
         String catNames = (categoryList != null && !categoryList.isBlank()) ? categoryList : "1:General";
@@ -421,24 +421,36 @@ public class AiConfigurationService {
         // Generate dynamic SEO slug from title or content
         String slugBase = titleEn.toLowerCase().replaceAll("[^a-z0-9\\s]", "").replaceAll("\\s+", "-").replaceAll("-+", "-").replaceAll("^-|-$", "");
         if (slugBase.isEmpty()) {
-            // Tamil title transliterated keywords fallback
             slugBase = "news-article-" + Math.abs(title.hashCode() % 100000);
         }
         String slug = slugBase;
 
-        // Extract key words from title & clean text for dynamic focus & meta keywords
-        List<String> textWords = Arrays.stream(cleanText.split("[\\s,.:;!\"'()\\-]+"))
-            .filter(w -> w.length() > 2)
+        // Dynamic Frequency-Weighted Keyword Extraction from Content & Title
+        Set<String> stopWords = Set.of("the", "and", "for", "with", "that", "this", "from", "news", "breaking", "மற்றும்", "ஒரு", "என்று", "இந்த", "செய்திகள்");
+        List<String> textWords = Arrays.stream((title + " " + cleanText).split("[\\s,.:;!\"'()\\-]+"))
+            .map(w -> w.trim().replaceAll("^[^\\w\\u0B80-\\u0BFF]+|[^\\w\\u0B80-\\u0BFF]+$", ""))
+            .filter(w -> w.length() > 2 && !stopWords.contains(w.toLowerCase()))
             .distinct()
             .toList();
 
-        List<String> taWords = textWords.stream().filter(w -> w.matches(".*[\\u0B80-\\u0BFF].*")).limit(6).toList();
-        List<String> enWords = textWords.stream().filter(w -> w.matches(".*[a-zA-Z].*")).limit(6).toList();
+        List<String> taWords = textWords.stream().filter(w -> w.matches(".*[\\u0B80-\\u0BFF].*")).limit(8).toList();
+        List<String> enWords = textWords.stream().filter(w -> w.matches(".*[a-zA-Z].*")).limit(8).toList();
 
-        String kwTa = !taWords.isEmpty() ? String.join(", ", taWords) : "செய்திகள், தமிழ்நாடு, அண்மைச்செய்தி";
-        String kwEn = !enWords.isEmpty() ? String.join(", ", enWords) : "news, tamil nadu, breaking news, latest updates";
-        String focusTa = !taWords.isEmpty() ? String.join(", ", taWords.subList(0, Math.min(3, taWords.size()))) : "செய்திகள், தமிழ்நாடு";
-        String focusEn = !enWords.isEmpty() ? String.join(", ", enWords.subList(0, Math.min(3, enWords.size()))) : "news, breaking news";
+        String kwTa = !taWords.isEmpty() ? String.join(", ", taWords) : "";
+        String kwEn = !enWords.isEmpty() ? String.join(", ", enWords) : "";
+
+        if (kwEn.isBlank() && !kwTa.isBlank()) {
+            kwEn = translateViaGoogleGtx(kwTa, "en");
+        }
+        if (kwTa.isBlank() && !kwEn.isBlank()) {
+            kwTa = translateViaGoogleGtx(kwEn, "ta");
+        }
+
+        if (kwTa.isBlank()) kwTa = title.length() > 5 ? title : "செய்திகள், தமிழ்நாடு";
+        if (kwEn.isBlank()) kwEn = title.length() > 5 ? title : "news, breaking updates";
+
+        String focusTa = taWords.size() >= 2 ? String.join(", ", taWords.subList(0, Math.min(3, taWords.size()))) : kwTa;
+        String focusEn = enWords.size() >= 2 ? String.join(", ", enWords.subList(0, Math.min(3, enWords.size()))) : kwEn;
 
         String descTa = excerpt.length() > 10 ? excerpt : (cleanText.length() > 150 ? cleanText.substring(0, 150) : cleanText);
         String descEn = excerpt.length() > 10 ? excerpt : (cleanText.length() > 150 ? cleanText.substring(0, 150) : cleanText);
@@ -496,6 +508,32 @@ public class AiConfigurationService {
             escapeJson(kwEn),
             escapeJson(slug)
         );
+    }
+
+    private String translateViaGoogleGtx(String text, String targetLang) {
+        if (text == null || text.isBlank()) return "";
+        try {
+            String clean = text.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+            if (clean.isBlank()) return "";
+            if (clean.length() > 1000) clean = clean.substring(0, 1000);
+            String url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" + targetLang + "&dt=t&q=" + java.net.URLEncoder.encode(clean, java.nio.charset.StandardCharsets.UTF_8);
+            org.springframework.web.client.RestTemplate rt = new org.springframework.web.client.RestTemplate();
+            List<?> res = rt.getForObject(url, List.class);
+            if (res != null && !res.isEmpty() && res.get(0) instanceof List) {
+                List<?> sentences = (List<?>) res.get(0);
+                StringBuilder sb = new StringBuilder();
+                for (Object s : sentences) {
+                    if (s instanceof List && !((List<?>) s).isEmpty()) {
+                        Object first = ((List<?>) s).get(0);
+                        if (first != null) sb.append(first.toString());
+                    }
+                }
+                return sb.toString().trim();
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AiConfigurationService.class).warn("Google GTX fallback error in AiConfigurationService:", e);
+        }
+        return "";
     }
 
     private String escapeJson(String input) {

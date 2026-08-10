@@ -1197,6 +1197,85 @@ const NewsEditor = () => {
     };
   };
 
+  const isGenericKeyword = (kwStr) => {
+    if (!kwStr || String(kwStr).trim().length === 0) return true;
+    const lower = String(kwStr).toLowerCase().trim();
+    const genericList = ['news', 'breaking', 'tamil nadu', 'breaking news', 'news tags', 'primary keywords', 'செய்திகள்', 'தமிழ்நாடு', 'அண்மைச்செய்தி', 'செய்தி', 'தமிழ்'];
+    const items = lower.split(',').map(s => s.trim());
+    const matchCount = items.filter(it => genericList.includes(it)).length;
+    return matchCount >= items.length / 2;
+  };
+
+  const extractNewsKeywordsFromContent = (title = '', excerpt = '', content = '', lang = 'en') => {
+    const combinedText = `${title} ${excerpt} ${(content || '').replace(/<[^>]*>/g, ' ')}`.trim();
+    if (!combinedText || combinedText.length < 5) return { focusKeywords: '', metaKeywords: '' };
+
+    const words = combinedText.split(/\s+/);
+    const stopWordsEn = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'about', 'into', 'over', 'after', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'shall', 'should', 'can', 'could', 'may', 'might', 'must', 'this', 'that', 'these', 'those', 'news', 'breaking', 'latest', 'update', 'said', 'also', 'which', 'their', 'there', 'they', 'other', 'more', 'some', 'than', 'them', 'first']);
+    const stopWordsTa = new Set(['மற்றும்', 'ஒரு', 'என்று', 'இந்த', 'அந்த', 'என', 'அவர்', 'அவர்கள்', 'செய்தி', 'செய்திகள்', 'அண்மைச்செய்தி', 'போது', 'செய்து', 'உள்ளது', 'உள்ளனர்', 'குறித்து', 'ஆகிய', 'எனத்', 'முதல்', 'அனைத்து', 'எனவே', 'அரசு', 'நிலை', 'மறுபடி', 'இல்லை', 'வந்த', 'செய்ய', 'கொண்டு', 'பற்றி']);
+
+    const stopWords = lang === 'ta' ? stopWordsTa : stopWordsEn;
+    const isTa = lang === 'ta';
+    const frequencyMap = new Map();
+
+    const addTerm = (term, weight = 1) => {
+      const cleanTerm = term.trim().replace(/^[^\w\u0B80-\u0BFF]+|[^\w\u0B80-\u0BFF]+$/g, '');
+      if (!cleanTerm || cleanTerm.length < 3) return;
+      const lower = cleanTerm.toLowerCase();
+      if (stopWords.has(lower)) return;
+      frequencyMap.set(cleanTerm, (frequencyMap.get(cleanTerm) || 0) + weight);
+    };
+
+    const titleWords = title.split(/\s+/);
+    for (let i = 0; i < titleWords.length; i++) {
+      addTerm(titleWords[i], 4);
+      if (i < titleWords.length - 1) {
+        const phrase = `${titleWords[i]} ${titleWords[i+1]}`;
+        const parts = phrase.toLowerCase().split(' ');
+        if (!parts.some(p => stopWords.has(p))) addTerm(phrase, 6);
+      }
+    }
+
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i].replace(/^[^\w\u0B80-\u0BFF]+|[^\w\u0B80-\u0BFF]+$/g, '');
+      if (!w || stopWords.has(w.toLowerCase())) continue;
+
+      if (!isTa && /^[A-Z][a-z0-9]{2,}$/.test(w)) {
+        addTerm(w, 3);
+      } else if (isTa && w.length >= 3) {
+        addTerm(w, 2);
+      }
+
+      if (i < words.length - 1) {
+        const nextW = words[i+1].replace(/^[^\w\u0B80-\u0BFF]+|[^\w\u0B80-\u0BFF]+$/g, '');
+        if (nextW && !stopWords.has(nextW.toLowerCase())) {
+          if (!isTa && /^[A-Z]/.test(w) && /^[A-Z]/.test(nextW)) {
+            addTerm(`${w} ${nextW}`, 5);
+          } else if (isTa && w.length >= 3 && nextW.length >= 3) {
+            addTerm(`${w} ${nextW}`, 4);
+          }
+        }
+      }
+    }
+
+    const sorted = Array.from(frequencyMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(e => e[0]);
+
+    const uniqueKeywords = [];
+    for (const kw of sorted) {
+      if (!uniqueKeywords.some(ex => ex.toLowerCase().includes(kw.toLowerCase()) || kw.toLowerCase().includes(ex.toLowerCase()))) {
+        uniqueKeywords.push(kw);
+      }
+      if (uniqueKeywords.length >= 10) break;
+    }
+
+    const focusKeywords = uniqueKeywords.slice(0, 3).join(', ');
+    const metaKeywords = uniqueKeywords.slice(0, 8).join(', ');
+
+    return { focusKeywords, metaKeywords };
+  };
+
   // ── 1-Click AI Proofread, Grammar Correction & Full Auto-Fill ───────────────
   const handleAiProofreadAndAutoFill = async () => {
     const taHtml = editorRefTa.current ? editorRefTa.current.getContent({ format: 'html' }) : form.contentTa;
@@ -1229,7 +1308,7 @@ const NewsEditor = () => {
       }
 
       if (!raw) {
-        const prompt = `You are a professional Tamil & English news editor for Kings 24x7. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nPerform the following:\n1. Proofread and correct grammar/spelling in English AND translate/proofread into high-quality Tamil.\n2. Create production-ready HTML for contentTa (Tamil) and contentEn (English).\n3. Create proper headlines (titleTa in Tamil, titleEn in English).\n4. Create 1-2 sentence excerpts (shortDescTa in Tamil, shortDescEn in English).\n5. Create SEO metadata for BOTH languages:\n   - metaKeywordsTa: 4-8 comma-separated news tags in TAMIL script (e.g. "செய்திகள், தமிழ்நாடு, சென்னை, அரசியல்")\n   - metaKeywordsEn: 4-8 comma-separated news tags in ENGLISH (e.g. "news, tamil nadu, chennai, politics")\n   - focusKeywordsTa: main focus keyword in TAMIL (e.g. "செய்திகள்")\n   - focusKeywordsEn: main focus keyword in ENGLISH (e.g. "news")\n   - metaTitleTa: SEO title in TAMIL\n   - metaTitleEn: SEO title in ENGLISH\n   - metaDescriptionTa: SEO description in TAMIL\n   - metaDescriptionEn: SEO description in ENGLISH\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitleTa, metaTitleEn, metaDescriptionTa, metaDescriptionEn, focusKeywordsTa, focusKeywordsEn, metaKeywordsTa, metaKeywordsEn, slug, categoryId, suggestedSource, suggestedLocation.`;
+        const prompt = `You are a professional Tamil & English chief news editor for Kings 24x7. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nPerform the following:\n1. Proofread and correct grammar/spelling in English AND translate/proofread into high-quality Tamil.\n2. Create production-ready HTML for contentTa (Tamil) and contentEn (English).\n3. Create proper headlines (titleTa in Tamil, titleEn in English).\n4. Create 1-2 sentence excerpts (shortDescTa in Tamil, shortDescEn in English).\n5. Create HIGH-IMPACT SEO metadata extracted DIRECTLY from the provided content:\n   - metaKeywordsTa: 6-10 comma-separated prominent news tags/entities in TAMIL script extracted from content (proper nouns, locations, politician/event terms). Do NOT use generic words like "செய்திகள்" or "தமிழ்நாடு".\n   - metaKeywordsEn: 6-10 comma-separated prominent news tags/entities in ENGLISH extracted from content. Do NOT use generic words like "news" or "breaking".\n   - focusKeywordsTa: 2-4 main focus keyphrases in TAMIL script extracted from headline & key topic.\n   - focusKeywordsEn: 2-4 main focus keyphrases in ENGLISH extracted from headline & key topic.\n   - metaTitleTa: SEO title in TAMIL\n   - metaTitleEn: SEO title in ENGLISH\n   - metaDescriptionTa: SEO description in TAMIL\n   - metaDescriptionEn: SEO description in ENGLISH\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitleTa, metaTitleEn, metaDescriptionTa, metaDescriptionEn, focusKeywordsTa, focusKeywordsEn, metaKeywordsTa, metaKeywordsEn, slug, categoryId, suggestedSource, suggestedLocation.`;
         try {
           raw = await callGemini(prompt);
         } catch (e) {
@@ -1274,12 +1353,20 @@ const NewsEditor = () => {
         let finalContentEn = parsed.contentEn || f.contentEn || '';
         let finalContentTa = parsed.contentTa || f.contentTa || '';
 
-        // ── 5. Language-specific Meta Keywords & Focus Keywords ──────────
-        let metaKeywordsTa = parsed.metaKeywordsTa || f.metaKeywordsTa || 'செய்திகள், தமிழ்நாடு, அண்மைச்செய்தி';
-        let focusKeywordsTa = parsed.focusKeywordsTa || f.focusKeywordsTa || 'செய்திகள், தமிழ்நாடு';
+        // ── 5. Dynamic Content-Extracted Meta Keywords & Focus Keywords ──────────
+        let metaKeywordsTa = parsed.metaKeywordsTa || f.metaKeywordsTa || '';
+        let focusKeywordsTa = parsed.focusKeywordsTa || f.focusKeywordsTa || '';
+        let metaKeywordsEn = parsed.metaKeywordsEn || parsed.metaKeywords || f.metaKeywordsEn || '';
+        let focusKeywordsEn = parsed.focusKeywordsEn || parsed.focusKeywords || f.focusKeywordsEn || '';
 
-        let metaKeywordsEn = parsed.metaKeywordsEn || parsed.metaKeywords || f.metaKeywordsEn || 'news, breaking, tamil nadu';
-        let focusKeywordsEn = parsed.focusKeywordsEn || parsed.focusKeywords || f.focusKeywordsEn || 'news, breaking news';
+        const extractedTa = extractNewsKeywordsFromContent(parsed.titleTa || f.titleTa, parsed.shortDescTa || f.shortDescTa, finalContentTa, 'ta');
+        const extractedEn = extractNewsKeywordsFromContent(parsed.titleEn || f.titleEn, parsed.shortDescEn || f.shortDescEn, finalContentEn, 'en');
+
+        if (isGenericKeyword(metaKeywordsTa) || !metaKeywordsTa) metaKeywordsTa = extractedTa.metaKeywords || extractedEn.metaKeywords;
+        if (isGenericKeyword(focusKeywordsTa) || !focusKeywordsTa) focusKeywordsTa = extractedTa.focusKeywords || extractedEn.focusKeywords;
+
+        if (isGenericKeyword(metaKeywordsEn) || !metaKeywordsEn) metaKeywordsEn = extractedEn.metaKeywords || extractedTa.metaKeywords;
+        if (isGenericKeyword(focusKeywordsEn) || !focusKeywordsEn) focusKeywordsEn = extractedEn.focusKeywords || extractedTa.focusKeywords;
 
         return {
           ...f,
