@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kings-tv-pwa-v8';
+const CACHE_NAME = 'kings-tv-pwa-v10';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
