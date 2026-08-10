@@ -978,10 +978,13 @@ const PostEditor = () => {
     const city = form.constituency || '';
 
     // 1. Tamil SEO Generation
-    let descTa = cleanTa.slice(0, 155) || (titleTa ? `${titleTa} - கிங்ஸ் 24x7 செய்திகள்` : (titleEn ? `${titleEn} - தமிழ் செய்திகள்` : ''));
-    if (descTa.length < 90) {
-      descTa = `${descTa} - கிங்ஸ் 24x7 செய்தித் தளத்தில் அண்மைச் செய்திகள் மற்றும் நேரடிச் செய்திகளை உடனுக்குடன் தெரிந்து கொள்ளுங்கள்.`.slice(0, 160);
+    let descTa = '';
+    if (titleTa) {
+      const topicTa = catTa ? ` ${catTa}` : '';
+      const locationTa = distTa ? ` ${distTa}` : '';
+      descTa = `${titleTa} -${locationTa}${topicTa} விரிவான செய்திகளை கிங்ஸ் 24x7 தளத்தில் படிக்கவும்.`;
     }
+    descTa = descTa.slice(0, 160);
 
     let metaTitleTa = titleTa ? `${titleTa} | கிங்ஸ் 24x7` : (form.metaTitleTa || '');
     if (metaTitleTa.length < 35) {
@@ -1001,10 +1004,13 @@ const PostEditor = () => {
     const focusTa = keywordsTaArr.slice(0, 3).join(', ');
 
     // 2. English SEO Generation
-    let descEn = cleanEn.slice(0, 155) || (titleEn ? `${titleEn} - Kings 24x7 News Update` : (titleTa ? `${titleTa} - Kings 24x7 Latest News` : ''));
-    if (descEn.length < 90) {
-      descEn = `${descEn} - Get the latest news and live updates on Kings 24x7, your trusted news source covering Politics, Cinema, Sports, Business, and more.`.slice(0, 160);
+    let descEn = '';
+    if (titleEn) {
+      const topicEn = focusTa ? ` about ${focusTa}` : '';
+      const locationEn = distEn ? ` in ${distEn}` : '';
+      descEn = `${titleEn} - Read the full story${topicEn}${locationEn} on Kings 24x7.`;
     }
+    descEn = descEn.slice(0, 160);
 
     let metaTitleEn = titleEn ? `${titleEn} | Kings 24x7` : (titleTa ? `${titleTa} | Kings 24x7 News` : (form.metaTitleEn || ''));
     if (metaTitleEn.length < 35) {
@@ -1029,6 +1035,16 @@ const PostEditor = () => {
     const keywordsEn = keywordsEnArr.slice(0, 8).join(', ');
     const focusEn = keywordsEnArr.slice(0, 3).join(', ');
 
+    // Helper to extract the first true sentence from the content
+    const extractFirstSentence = (text) => {
+      if (!text) return '';
+      let s = text.replace(/^[^-]+-\s*/, '').trim();
+      const match = s.match(/^[^.]+(?:\.\s+|$)/);
+      let sentence = match ? match[0].trim() : s.slice(0, 150);
+      if (sentence.length > 200) sentence = sentence.slice(0, 197) + '...';
+      return sentence;
+    };
+
     // 3. Search Slug Generation & Dual-Language Combining
     const generatedSlug = form.slug ? slugify(form.slug) : slugify(titleEn || titleTa);
     const dualKeywords = [keywordsTa, keywordsEn].filter(Boolean).join(', ');
@@ -1041,14 +1057,14 @@ const PostEditor = () => {
       metaDescriptionTa: descTa,
       focusKeywordsTa: dualFocus || focusTa || keywordsTa,
       metaKeywordsTa: dualKeywords || keywordsTa || 'செய்திகள், தமிழ்நாடு, சென்னை',
-      shortDescTa: f.shortDescTa || cleanTa.slice(0, 200),
+      shortDescTa: f.shortDescTa || extractFirstSentence(cleanTa),
       
       // English SEO
       metaTitleEn: metaTitleEn,
       metaDescriptionEn: descEn,
       focusKeywordsEn: dualFocus || focusEn || keywordsEn,
       metaKeywordsEn: dualKeywords || keywordsEn || 'Tamil Nadu, Breaking News, Politics, Latest Updates',
-      shortDescEn: f.shortDescEn || cleanEn.slice(0, 200),
+      shortDescEn: f.shortDescEn || extractFirstSentence(cleanEn),
 
       // Unified Dual-Language Keywords across both tabs
       metaTitle: activeTab === 0 ? metaTitleTa : metaTitleEn,
