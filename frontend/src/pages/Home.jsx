@@ -4,6 +4,7 @@ import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { DistrictContext } from '../context/DistrictContext';
 import { fetchApi, getImageUrl } from '../utils/api';
+import { getRelativeTime, getReadingTime, getViewsCount } from '../utils/formatters';
 import { resolveHandleToChannelId, fetchChannelVideos } from '../services/youtubeService';
 import { generateBlockStyles } from '../utils/styleHelper';
 import AdWidget from '../components/AdWidget';
@@ -13,7 +14,7 @@ import SkeletonLoader from '../components/SkeletonLoader';
 const Home = () => {
   const { lang, t } = useContext(LanguageContext);
   const { widgetWidth, slideSpeed, sections } = useContext(ThemeContext);
-  const { district } = useContext(DistrictContext);
+  const { district, districtEn } = useContext(DistrictContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [articles, setArticles] = useState([]);
@@ -919,9 +920,9 @@ const Home = () => {
                     {lang === 'en' ? (art.shortDescEn || art.shortDescTa) : (art.shortDescTa || art.shortDescEn)}
                   </p>
                   <div className="card-meta">
-                    <span><i className="far fa-clock"></i> 1 Hr Ago</span>
-                    <span><i className="far fa-eye"></i> {art.viewsCount || 340}</span>
-                    <span><i className="far fa-clock"></i> {lang === 'en' ? `${art.readingTime || 1} Min Read` : `${art.readingTime || 1} நிமிட வாசிப்பு`}</span>
+                    <span><i className="far fa-clock"></i> {getRelativeTime(art.publishedAt || art.createdAt, lang)}</span>
+                    <span><i className="far fa-eye"></i> {getViewsCount(art)}</span>
+                    <span><i className="far fa-clock"></i> {getReadingTime(art, lang)}</span>
                   </div>
                 </div>
               </div>
@@ -968,9 +969,9 @@ const Home = () => {
                     {lang === 'en' ? (art.shortDescEn || art.shortDescTa) : (art.shortDescTa || art.shortDescEn)}
                   </p>
                   <div className="card-meta">
-                    <span><i className="far fa-clock"></i> 1 Hr Ago</span>
-                    <span><i className="far fa-eye"></i> {art.viewsCount || 340}</span>
-                    <span><i className="far fa-clock"></i> {lang === 'en' ? `${art.readingTime || 1} Min Read` : `${art.readingTime || 1} நிமிட வாசிப்பு`}</span>
+                    <span><i className="far fa-clock"></i> {getRelativeTime(art.publishedAt || art.createdAt, lang)}</span>
+                    <span><i className="far fa-eye"></i> {getViewsCount(art)}</span>
+                    <span><i className="far fa-clock"></i> {getReadingTime(art, lang)}</span>
                   </div>
                 </div>
               </div>
@@ -1049,8 +1050,8 @@ const Home = () => {
                     {lang === 'en' ? (art.shortDescEn || art.shortDescTa) : (art.shortDescTa || art.shortDescEn)}
                   </p>
                   <div className="card-meta">
-                    <span><i className="far fa-clock"></i> 1 Hr Ago</span>
-                    <span><i className="far fa-eye"></i> {art.viewsCount || 340}</span>
+                    <span><i className="far fa-clock"></i> {getRelativeTime(art.publishedAt || art.createdAt, lang)}</span>
+                    <span><i className="far fa-eye"></i> {getViewsCount(art)}</span>
                   </div>
                 </div>
               </div>

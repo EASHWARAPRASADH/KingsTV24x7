@@ -249,6 +249,7 @@ const MediaLibrary = () => {
   const [renameInput, setRenameInput] = useState('');
   const [renaming, setRenaming] = useState(false);
 
+  const [previewItem, setPreviewItem] = useState(null);
   const [toast, setToast] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);

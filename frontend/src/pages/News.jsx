@@ -2,12 +2,15 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { LanguageContext } from '../context/LanguageContext';
 import { ThemeContext } from '../context/ThemeContext';
+import { GeoContext } from '../context/GeoContext';
 import { fetchApi, getImageUrl } from '../utils/api';
+import { getRelativeTime, getReadingTime, getViewsCount } from '../utils/formatters';
 import AdWidget from '../components/AdWidget';
 
 const News = () => {
   const { lang } = useContext(LanguageContext);
   const { theme } = useContext(ThemeContext);
+  const { activeDistrict, allDistricts: geoDistricts } = useContext(GeoContext);
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Primary Data State
@@ -20,12 +23,14 @@ const News = () => {
   // Filter States
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
-  const [selectedDistrict, setSelectedDistrict] = useState(searchParams.get('district') || 'all');
+  const [selectedDistrict, setSelectedDistrict] = useState(() => 'all');
   const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'popular'
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  const districtList = [
+  const districtList = geoDistricts.length > 0
+    ? geoDistricts.map(d => ({ en: d.nameEn, ta: d.nameTa || d.nameEn }))
+    : [
     { en: 'Chennai', ta: 'சென்னை' },
     { en: 'Coimbatore', ta: 'கோவை' },
     { en: 'Madurai', ta: 'மதுரை' },
@@ -134,6 +139,14 @@ const News = () => {
     if (distParam) setSelectedDistrict(distParam);
   }, [searchParams]);
 
+  // Pre-select user's geo district in News filter
+  useEffect(() => {
+    if (activeDistrict && activeDistrict.nameEn && selectedDistrict === 'all') {
+      // News filter uses English names for district
+      setSelectedDistrict(activeDistrict.nameEn);
+    }
+  }, [activeDistrict]);
+
   // Handle category pill changes
   const handleCategoryChange = (catId) => {
     setSelectedCategory(String(catId));
@@ -217,13 +230,6 @@ const News = () => {
     } else {
       window.scrollTo({ top: 350, behavior: 'smooth' });
     }
-  };
-
-  const getReadingTime = (art) => {
-    if (art.readingTime) return art.readingTime;
-    const text = (art.contentEn || art.contentTa || art.shortDescEn || art.shortDescTa || '');
-    const words = text.replace(/<[^>]*>/g, '').split(/\s+/).length;
-    return Math.ceil(words / 150) || 1;
   };
 
   return (
@@ -397,11 +403,11 @@ const News = () => {
                       <div style={{ display: 'flex', gap: '14px' }}>
                         <span>
                           <i className="far fa-eye" style={{ marginRight: '4px' }}></i>
-                          {featuredArticle.viewsCount || 350}
+                          {getViewsCount(featuredArticle)}
                         </span>
                         <span>
                           <i className="far fa-clock" style={{ marginRight: '4px' }}></i>
-                          {getReadingTime(featuredArticle)} {lang === 'en' ? 'min read' : 'நிமி'}
+                          {getReadingTime(featuredArticle, lang)}
                         </span>
                       </div>
                     </div>
@@ -470,9 +476,9 @@ const News = () => {
                           </Link>
                         </h4>
                         <div style={{ display: 'flex', gap: '10px', fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
-                          <span><i className="far fa-eye"></i> {art.viewsCount || 210}</span>
+                          <span><i className="far fa-eye"></i> {getViewsCount(art)}</span>
                           <span>•</span>
-                          <span>{getReadingTime(art)} {lang === 'en' ? 'min read' : 'நிமி'}</span>
+                          <span>{getReadingTime(art, lang)}</span>
                         </div>
                       </div>
                     </div>
@@ -796,11 +802,11 @@ const News = () => {
                               }}>
                                 <span>
                                   <i className="far fa-clock" style={{ marginRight: '4px' }}></i> 
-                                  {art.publishedAt ? new Date(art.publishedAt).toLocaleDateString() : '1 Hr Ago'}
+                                  {getRelativeTime(art.publishedAt || art.createdAt, lang)}
                                 </span>
                                 <span>
                                   <i className="far fa-eye" style={{ marginRight: '4px' }}></i> 
-                                  {art.viewsCount || 120}
+                                  {getViewsCount(art)}
                                 </span>
                               </div>
                             </div>
@@ -1008,7 +1014,7 @@ const News = () => {
                           </Link>
                           <span style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginTop: '4px' }}>
                             <i className="far fa-eye" style={{ marginRight: '4px' }}></i>
-                            {art.viewsCount || 100} {lang === 'en' ? 'views' : 'பார்வைகள்'}
+                            {getViewsCount(art)} {lang === 'en' ? 'views' : 'பார்வைகள்'}
                           </span>
                         </div>
                       </div>
