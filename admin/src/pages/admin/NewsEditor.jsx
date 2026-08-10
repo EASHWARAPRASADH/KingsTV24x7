@@ -1379,7 +1379,7 @@ const NewsEditor = () => {
     }
 
     // Strip ALL placeholder / template tags
-    const badRegex = /\[Translated Title\]|\[Translated Excerpt\]|\[Translated HTML Paragraphs\]|\[Translated Content\]|Original Text:|Text to Translate:|Source Content:|TITLE:|EXCERPT:|CONTENT:/gi;
+    const badRegex = /\[Translated Title\]|\[Translated Excerpt\]|\[Translated HTML Paragraphs\]|\[Translated Content\]|English translated headline|English translated summary|English translated HTML content|Tamil translated headline|Tamil translated summary|Tamil translated HTML content|Original Text:|Text to Translate:|Source Content:|TITLE:|EXCERPT:|CONTENT:/gi;
     title = title.replace(badRegex, '').trim();
     excerpt = excerpt.replace(badRegex, '').trim();
     content = content.replace(badRegex, '').trim();
@@ -1389,6 +1389,25 @@ const NewsEditor = () => {
     }
 
     return { title, excerpt, content };
+  };
+
+  // ── MyMemory Zero-Failure Translation Fallback ─────────────────────────────
+  const fetchMyMemoryTranslation = async (text, direction) => {
+    if (!text || text.trim().length === 0) return '';
+    const langpair = direction === 'ta2en' ? 'ta|en' : 'en|ta';
+    const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!cleanText) return '';
+    try {
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText.substring(0, 500))}&langpair=${langpair}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data.responseData && data.responseData.translatedText) {
+        return data.responseData.translatedText;
+      }
+    } catch (err) {
+      console.error('MyMemory API error:', err);
+    }
+    return '';
   };
 
   // ── Auto Translate Title, Excerpt, Content ─────────────────────────────────
@@ -1424,17 +1443,35 @@ const NewsEditor = () => {
         });
         if (res.data && !res.data.error && res.data.result) {
           rawResponse = res.data.result;
-        } else if (res.data && res.data.result) {
-          backendErrorMsg = res.data.result;
+        } else if (res.data && res.data.message) {
+          backendErrorMsg = res.data.message;
         }
       } catch (backendErr) {
-        console.warn('Backend translation API failed, attempting direct Gemini AI fallback...', backendErr);
-        backendErrorMsg = backendErr.response?.data?.result || backendErr.response?.data?.message || backendErr.message || '';
+        console.warn('Backend translation failed, falling back to direct browser Gemini call...', backendErr);
+        backendErrorMsg = backendErr.response?.data?.message || backendErr.message || '';
       }
 
+      // If backend call failed or returned empty result, fallback to client-side Gemini
       if (!rawResponse) {
         try {
-          const prompt = `You are a professional bilingual news translator for KINGS 24x7. Translate the following news article from ${direction === 'ta2en' ? 'Tamil to English' : 'English to Tamil'}.\n\nSource Title:\n${sourceTitle || ''}\n\nSource Excerpt:\n${sourceExcerpt || ''}\n\nSource Article Content:\n${sourceContent || ''}\n\nRULES:\n1. Preserve all HTML tags (<p>, <strong>, <em>, <br>). Translate text inside HTML without modifying HTML structure.\n2. Respond ONLY in valid JSON format matching schema: {"title": "translated title", "excerpt": "translated excerpt", "content": "<p>translated content</p>"}.\n3. Do NOT include markdown code blocks \`\`\`json, do NOT include template placeholders like [Translated Excerpt], [Translated HTML Paragraphs], Original Text:, TITLE:, EXCERPT:, or CONTENT:.`;
+          const prompt = `You are a professional chief news editor and translator for KINGS 24x7 news.
+Translate the following ${direction === 'ta2en' ? 'Tamil news article into clear, publication-ready English (AP news style)' : 'English news article into natural news Tamil'}.
+
+Source Title: ${sourceTitle || ''}
+Source Excerpt: ${sourceExcerpt || ''}
+Source Content: ${sourceContent || ''}
+
+RULES FOR TRANSLATION:
+1. Translate the ACTUAL text in Source Title and Source Content.
+2. Preserve all HTML tags (<p>, <strong>, <em>, <br>).
+3. Respond ONLY with a valid JSON object in this exact structure:
+{
+  "title": "...",
+  "excerpt": "...",
+  "content": "<p>...</p>"
+}
+4. CRITICAL: Do NOT output placeholder text, schema instructions, or labels like "English translated headline". Return ONLY the JSON object.`;
+
           rawResponse = await callGemini(prompt);
         } catch (geminiErr) {
           console.warn('Direct Gemini fallback failed:', geminiErr);
@@ -1444,74 +1481,31 @@ const NewsEditor = () => {
 
       let { title: newTitle, excerpt: newExcerpt, content: newContent } = cleanAndExtractTranslation(rawResponse);
 
-      // ── Target Language Validation Guard ──────────────────────────────────
+      // ── Target Language Validation & Zero-Failure Fallback Guard ──────────
+      let isValidTargetLang = false;
       if (direction === 'ta2en') {
         const hasEnglish = /[a-zA-Z]{3,}/.test((newTitle || '') + ' ' + (newContent || ''));
-        if (!hasEnglish) {
-          console.warn('Backend returned non-English text for ta2en translation. Triggering browser Gemini translation...');
-          try {
-            const prompt = `You are a professional newsroom translation engine for KINGS 24x7 news.
-Translate the following Tamil news article into publication-ready, natural English (AP news style).
-
-Source Title: ${sourceTitle || ''}
-Source Excerpt: ${sourceExcerpt || ''}
-Source Content: ${sourceContent || ''}
-
-RULES:
-- Translate Tamil news text into clear, fluent English.
-- Preserve HTML tags (<p>, <strong>, <em>, <br>).
-- Respond ONLY with a valid JSON object:
-{
-  "title": "English translated headline",
-  "excerpt": "English translated summary",
-  "content": "<p>English translated HTML content</p>"
-}
-- Return ONLY the JSON object without markdown code blocks.`;
-
-            const geminiRaw = await callGemini(prompt);
-            const geminiExtracted = cleanAndExtractTranslation(geminiRaw);
-            if (geminiExtracted.title || geminiExtracted.content) {
-              newTitle = geminiExtracted.title || newTitle;
-              newExcerpt = geminiExtracted.excerpt || newExcerpt;
-              newContent = geminiExtracted.content || newContent;
-            }
-          } catch (geminiErr) {
-            console.error('Direct Gemini translation fallback failed:', geminiErr);
-          }
-        }
-      } else if (direction === 'en2ta') {
+        const isNotPlaceholder = !newTitle.toLowerCase().includes('english translated') && !newContent.toLowerCase().includes('english translated');
+        isValidTargetLang = hasEnglish && isNotPlaceholder;
+      } else {
         const hasTamil = /[\u0B80-\u0BFF]/.test((newTitle || '') + ' ' + (newContent || ''));
-        if (!hasTamil) {
-          console.warn('Backend returned non-Tamil text for en2ta translation. Triggering browser Gemini translation...');
-          try {
-            const prompt = `You are a professional newsroom translation engine for KINGS 24x7 news.
-Translate the following English news article into published, natural news Tamil (இலக்கிய/செய்தி தமிழ்).
+        const isNotPlaceholder = !newTitle.toLowerCase().includes('tamil translated') && !newContent.toLowerCase().includes('tamil translated');
+        isValidTargetLang = hasTamil && isNotPlaceholder;
+      }
 
-Source Title: ${sourceTitle || ''}
-Source Excerpt: ${sourceExcerpt || ''}
-Source Content: ${sourceContent || ''}
+      // If translation failed, returned non-target language text, or returned placeholder text: run MyMemory API
+      if (!isValidTargetLang || !newTitle || newTitle.trim().length === 0) {
+        console.warn(`Translation output invalid for ${direction}. Running MyMemory translation fallback...`);
+        try {
+          const fallbackTitle = await fetchMyMemoryTranslation(sourceTitle, direction);
+          const fallbackExcerpt = await fetchMyMemoryTranslation(sourceExcerpt || sourceContent, direction);
+          const fallbackContent = await fetchMyMemoryTranslation(sourceContent, direction);
 
-RULES:
-- Translate English text into natural news Tamil.
-- Preserve HTML tags (<p>, <strong>, <em>, <br>).
-- Respond ONLY with a valid JSON object:
-{
-  "title": "Tamil translated headline",
-  "excerpt": "Tamil translated summary",
-  "content": "<p>Tamil translated HTML content</p>"
-}
-- Return ONLY the JSON object without markdown code blocks.`;
-
-            const geminiRaw = await callGemini(prompt);
-            const geminiExtracted = cleanAndExtractTranslation(geminiRaw);
-            if (geminiExtracted.title || geminiExtracted.content) {
-              newTitle = geminiExtracted.title || newTitle;
-              newExcerpt = geminiExtracted.excerpt || newExcerpt;
-              newContent = geminiExtracted.content || newContent;
-            }
-          } catch (geminiErr) {
-            console.error('Direct Gemini translation fallback failed:', geminiErr);
-          }
+          if (fallbackTitle) newTitle = fallbackTitle;
+          if (fallbackExcerpt) newExcerpt = fallbackExcerpt;
+          if (fallbackContent) newContent = `<p>${fallbackContent}</p>`;
+        } catch (mmErr) {
+          console.error('MyMemory fallback failed:', mmErr);
         }
       }
 
