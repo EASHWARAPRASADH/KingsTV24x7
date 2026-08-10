@@ -69,12 +69,11 @@ public class SeoGeneratorService {
         
         // 6. Canonical URLs
         if (article.getCanonicalUrl() == null || article.getCanonicalUrl().trim().isEmpty()) {
-            String scheme = request.getScheme();
-            String serverName = request.getServerName();
-            int port = request.getServerPort();
-            // Map developer backend port 8080 to frontend dev server 5173
-            String portStr = (port == 8080) ? ":5173" : ((port != 80 && port != 443) ? ":" + port : "");
-            article.setCanonicalUrl(scheme + "://" + serverName + portStr + "/article/" + article.getSlug());
+            String baseUrl = "https://king-tv.test-technoprint.online";
+            if (request != null && request.getServerName() != null && (request.getServerName().contains("localhost") || request.getServerName().contains("127.0.0.1"))) {
+                baseUrl = "http://localhost:5173";
+            }
+            article.setCanonicalUrl(baseUrl + "/news/" + article.getSlug());
         }
     }
 }

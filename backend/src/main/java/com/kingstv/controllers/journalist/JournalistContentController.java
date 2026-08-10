@@ -69,7 +69,7 @@ public class JournalistContentController {
      * Category restricted to assigned categories (#37, #43)
      */
     @PostMapping
-    @RequiresPermission(Permission.ARTICLE_CREATE)
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     @CacheEvict(value = {"articles", "articles_all", "articles_web"}, allEntries = true)
     public ResponseEntity<?> createPost(@RequestBody Map<String, Object> request) {
         Long userId = getCallerId();
@@ -136,7 +136,7 @@ public class JournalistContentController {
      * NOTE: No DELETE endpoint exists for these roles — this is intentional API-layer enforcement.
      */
     @PutMapping("/{id}")
-    @RequiresPermission(Permission.ARTICLE_UPDATE)
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     @CacheEvict(value = {"articles", "articles_all", "articles_web"}, allEntries = true)
     public ResponseEntity<?> editPost(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         Long userId = getCallerId();
@@ -212,7 +212,7 @@ public class JournalistContentController {
      * AI Content Rewriter (#46) — available to MJ and Institution Login
      */
     @PostMapping("/ai-rewrite")
-    @RequiresPermission(Permission.AI_REWRITER_USE)
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.DISTRICT_ADMIN, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     public ResponseEntity<?> rewriteContent(@RequestBody Map<String, String> request) {
         String text = request.get("text");
         String style = request.getOrDefault("style", "professional");

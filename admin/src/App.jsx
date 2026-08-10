@@ -217,31 +217,31 @@ function App() {
           } />
 
           <Route path="/admin/news" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN']}>
               <NewsManagement />
             </ProtectedLayout>
           } />
 
           <Route path="/admin/news/create" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN']}>
               <NewsEditor />
             </ProtectedLayout>
           } />
 
           <Route path="/admin/breaking" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN']}>
               <BreakingNewsDashboard />
             </ProtectedLayout>
           } />
 
           <Route path="/admin/ugc-queue" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'SUB_EDITOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'SUB_EDITOR']}>
               <UgcQueue />
             </ProtectedLayout>
           } />
 
           <Route path="/admin/editorial-calendar" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN']}>
               <EditorialCalendar />
             </ProtectedLayout>
           } />
@@ -265,7 +265,7 @@ function App() {
           } />
 
           <Route path="/admin/profile" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'ADMIN', 'EDITOR', 'MODERATOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN', 'ADMIN', 'EDITOR', 'MODERATOR']}>
               <Profile />
             </ProtectedLayout>
           } />
@@ -277,20 +277,20 @@ function App() {
           } />
 
           <Route path="/admin/rss" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
               <RssManager />
             </ProtectedLayout>
           } />
 
           <Route path="/admin/seo" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
               <SeoConsole />
             </ProtectedLayout>
           } />
 
 
           <Route path="/admin/news/:id/edit" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN']}>
               <NewsEditor />
             </ProtectedLayout>
           } />
@@ -314,13 +314,13 @@ function App() {
           } />
 
           <Route path="/admin/comments" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN']}>
               <CommentsModeration />
             </ProtectedLayout>
           } />
 
           <Route path="/admin/media" element={
-            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR']}>
+            <ProtectedLayout allowedRoles={['SUPER_ADMIN', 'CHIEF_EDITOR', 'DISTRICT_ADMIN', 'MOBILE_JOURNALIST', 'INSTITUTION_LOGIN']}>
               <MediaLibrary />
             </ProtectedLayout>
           } />

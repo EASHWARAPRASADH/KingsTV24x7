@@ -158,6 +158,7 @@ function AppContent() {
           <Route path="/article/:id" element={<ArticleDetail />} />
           <Route path="/article" element={<Navigate to="/" replace />} />
           <Route path="/news/:id" element={<ArticleDetail />} />
+          <Route path="/news/:category/:id" element={<ArticleDetail />} />
           <Route path="/tag/:tagName" element={<TagArchive />} />
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/contact" element={<ContactUs />} />

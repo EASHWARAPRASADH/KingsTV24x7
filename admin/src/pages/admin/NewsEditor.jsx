@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api';
-import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, RotateCcw, FolderOpen } from 'lucide-react';
+import { Save, ArrowLeft, Send, CheckCircle, Image as ImageIcon, Video, FileText, Music, Sparkles, X, RefreshCw, Zap, AlignLeft, Check, Download, AlertCircle, Maximize, Loader2, UploadCloud, FileDown, Mic, LayoutTemplate, MapPin, MessageSquare, RotateCcw, FolderOpen, ExternalLink } from 'lucide-react';
 import { Editor } from '@tinymce/tinymce-react';
 import ImageUploadPreview from '../../components/common/ImageUploadPreview';
 import CategorySubcategorySelect from '../../components/common/CategorySubcategorySelect';
@@ -795,7 +795,7 @@ const NewsEditor = () => {
 
   const getLiveArticleUrl = () => {
     const mainOrigin = window.location.origin;
-    let baseDomain = 'https://kingstv.in';
+    let baseDomain = 'https://king-tv.test-technoprint.online';
     if (mainOrigin.includes('localhost') || mainOrigin.includes('127.0.0.1')) {
       baseDomain = 'http://localhost:5173';
     } else if (mainOrigin.includes('test-technoprint.online')) {
@@ -804,11 +804,8 @@ const NewsEditor = () => {
       baseDomain = mainOrigin.replace('admin.', '').replace('/admin', '');
     }
 
-    const selCategory = categories.find(c => String(c.id) === String(form.categoryId));
-    const catSlug = (selCategory?.slug || selCategory?.name || 'news').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     const artSlug = (form.slug || slugify(form.titleEn || form.titleTa || 'article-title')).toLowerCase();
-
-    return `${baseDomain}/news/${catSlug}/${artSlug}`;
+    return `${baseDomain}/news/${artSlug}`;
   };
 
   // --- Content Moderation: Dictionary Fetch & Scanning ---
@@ -2150,6 +2147,15 @@ RULES FOR TRANSLATION:
                   {aiGeneratingDraft ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
                   {aiGeneratingDraft ? 'Drafting...' : 'Generate Full Draft'}
                 </button>
+
+                <a 
+                  href={getLiveArticleUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ background: '#3B82F6', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  <ExternalLink size={16} /> View Published Article
+                </a>
 
 
               </div>

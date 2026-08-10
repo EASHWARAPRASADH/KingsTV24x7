@@ -136,7 +136,7 @@ const Sidebar = () => {
         </SidebarSection>
 
         {/* ═══ NEWSROOM (Content Creation & Management) ═══ */}
-        {isEditor && (
+        {(isEditor || isDistrictAdmin) && (
           <SidebarSection 
             id="newsroom" 
             title={t('newsroom')} 
@@ -158,6 +158,7 @@ const Sidebar = () => {
         {isJournalist && (
           <SidebarSection id="workspace" title={t('workspace')} icon={Edit3} defaultOpen={true}>
             <SidebarNavLink to="/journalist/posts" icon={Edit3} label={t('myPosts')} />
+            <SidebarNavLink to="/admin/media" icon={ImageIcon} label={t('mediaLibrary') || 'Media Library'} />
           </SidebarSection>
         )}
 
