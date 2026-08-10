@@ -207,15 +207,17 @@ public class AuthController {
         }
 
         String provider = user.getProvider() != null ? user.getProvider() : "LOCAL";
-        if (!"LOCAL".equalsIgnoreCase(provider)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Please log in using your " + provider + " account"));
-        }
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
             loginAttemptService.loginFailed(email);
             int remaining = loginAttemptService.getRemainingAttempts(email);
+            String providerNote = (!"LOCAL".equalsIgnoreCase(provider)) ? " (Note: Account was created via " + provider + ")" : "";
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Invalid email or password. Remaining attempts: " + remaining));
+                    .body(Map.of("message", "Invalid email or password" + providerNote + ". Remaining attempts: " + remaining));
+        }
+
+        if (!"LOCAL".equalsIgnoreCase(user.getProvider())) {
+            user.setProvider("LOCAL");
         }
 
         // Check if 2FA is enabled
@@ -632,9 +634,9 @@ public class AuthController {
         User user = userOpt.get();
         String ipAddress = httpRequest != null ? httpRequest.getRemoteAddr() : "127.0.0.1";
 
-        if (loginAttemptService.isBlocked(user.getEmail()) || loginAttemptService.isBlocked(ipAddress)) {
+        if (loginAttemptService.isBlocked(user.getEmail())) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(Map.of("message", "Account or IP address locked out due to multiple failed login attempts. Try again in 15 minutes."));
+                    .body(Map.of("message", "Account locked out due to multiple failed login attempts. Try again in 15 minutes."));
         }
 
         try {
@@ -643,7 +645,6 @@ public class AuthController {
             boolean isAuthorized = gAuth.authorize(user.getTwoFactorSecret(), code);
             if (!isAuthorized) {
                 loginAttemptService.loginFailed(user.getEmail());
-                loginAttemptService.loginFailed(ipAddress);
                 int remaining = loginAttemptService.getRemainingAttempts(user.getEmail());
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("message", "Invalid verification code. Remaining attempts: " + remaining));

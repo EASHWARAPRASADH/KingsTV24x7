@@ -89,6 +89,7 @@ public class BackendJavaApplication implements CommandLineRunner {
         updatePasswordIfPresent("admin@king24x7.com", "admin123", Role.SUPER_ADMIN, "Super Admin");
         updatePasswordIfPresent("vendor@king24x7.com", "vendor123", Role.INSTITUTION_LOGIN, "Government Vendor");
         updatePasswordIfPresent("editor@king24x7.com", "editor123", Role.CHIEF_EDITOR, "Chief Editor");
+        updatePasswordIfPresent("district@king24x7.com", "district123", Role.DISTRICT_ADMIN, "District Admin Coimbatore");
         updatePasswordIfPresent("reporter@king24x7.com", "reporter123", Role.MOBILE_JOURNALIST, "Mobile Journalist");
         updatePasswordIfPresent("user@king24x7.com", "user123", Role.READER, "Public Reader");
 
