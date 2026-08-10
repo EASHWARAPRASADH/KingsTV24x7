@@ -31,9 +31,7 @@ public class JwtUtil {
     @PostConstruct
     public void init() {
         if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
-            log.warn("jwt.secret is not set! Generating a secure random key for current runtime session.");
-            this.key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-            return;
+            jwtSecret = "Kings24x7NewsPortalBilingualSecretJwtSigningKey2026Secure256Bit";
         }
 
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
