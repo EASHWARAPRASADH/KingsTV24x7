@@ -1315,6 +1315,45 @@ const NewsEditor = () => {
     return { focusKeywords, metaKeywords };
   };
 
+  // ── Automatic SEO Keyword & Meta Data Generator ──────────────────────────────
+  const handleGenerateSeoKeywords = (force = false) => {
+    const tTa = form.titleTa || '';
+    const tEn = form.titleEn || '';
+    const cTa = editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa;
+    const cEn = editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn;
+
+    const kwTa = generateSeoKeywordsFromContent(tTa, cTa, 'ta');
+    const kwEn = generateSeoKeywordsFromContent(tEn, cEn, 'en');
+
+    const combinedFocus = [kwTa.focusKeywords, kwEn.focusKeywords].filter(Boolean).join(', ');
+    const combinedMeta = [kwTa.metaKeywords, kwEn.metaKeywords].filter(Boolean).join(', ');
+
+    const baseTitle = tTa || tEn || '';
+    const cleanMetaTitle = baseTitle.length > 55 ? baseTitle.substring(0, 55).trim() + '...' : baseTitle;
+    const plainContent = (form.shortDescTa || form.shortDescEn || cTa || cEn || '').replace(/<[^>]*>/g, '').trim();
+    const cleanMetaDesc = plainContent.length > 155 ? plainContent.substring(0, 155).trim() + '...' : plainContent;
+    const cleanSlug = slugify(tEn || tTa || '');
+
+    setForm(f => ({
+      ...f,
+      focusKeywordsTa: kwTa.focusKeywords || f.focusKeywordsTa,
+      metaKeywordsTa: kwTa.metaKeywords || f.metaKeywordsTa,
+      focusKeywordsEn: kwEn.focusKeywords || f.focusKeywordsEn,
+      metaKeywordsEn: kwEn.metaKeywords || f.metaKeywordsEn,
+      focusKeywords: (force || !f.focusKeywords) ? (combinedFocus || kwTa.focusKeywords || kwEn.focusKeywords || f.focusKeywords) : f.focusKeywords,
+      metaKeywords: (force || !f.metaKeywords) ? (combinedMeta || kwTa.metaKeywords || kwEn.metaKeywords || f.metaKeywords) : f.metaKeywords,
+      metaTitle: (force || !f.metaTitle) ? cleanMetaTitle : f.metaTitle,
+      metaTitleTa: (force || !f.metaTitleTa) ? tTa : f.metaTitleTa,
+      metaTitleEn: (force || !f.metaTitleEn) ? tEn : f.metaTitleEn,
+      metaDescription: (force || !f.metaDescription) ? cleanMetaDesc : f.metaDescription,
+      metaDescriptionTa: (force || !f.metaDescriptionTa) ? (form.shortDescTa || cleanMetaDesc) : f.metaDescriptionTa,
+      metaDescriptionEn: (force || !f.metaDescriptionEn) ? (form.shortDescEn || cleanMetaDesc) : f.metaDescriptionEn,
+      slug: (force || !f.slug) ? (cleanSlug || f.slug) : f.slug
+    }));
+
+    showMsg('⚡ High-ranking Focus Keywords, News Tags, and Meta Data generated!');
+  };
+
   // ── 1-Click AI Proofread, Grammar Correction & Full Auto-Fill ───────────────
   const handleAiProofreadAndAutoFill = async () => {
     const taHtml = editorRefTa.current ? editorRefTa.current.getContent({ format: 'html' }) : form.contentTa;
@@ -2680,9 +2719,24 @@ CRITICAL RULES FOR TRANSLATION:
                       />
                     </div>
 
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>SEO Keywords & News Tags</span>
+                      <button
+                        type="button"
+                        onClick={() => handleGenerateSeoKeywords(true)}
+                        style={{
+                          background: '#2563EB', color: '#fff', border: 'none',
+                          padding: '4px 10px', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                        }}
+                      >
+                        <Zap size={13} /> ⚡ Auto-Generate Keywords
+                      </button>
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
                           Focus Keywords 🌐 (Dual Language / இரு மொழி)
                         </label>
                         <AutoExpandTextarea 
@@ -2697,7 +2751,7 @@ CRITICAL RULES FOR TRANSLATION:
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
                           News Tags 🌐 (Dual Language / இரு மொழி)
                         </label>
                         <AutoExpandTextarea 
