@@ -100,17 +100,19 @@ public class AiAssistService {
             String excerpt = "";
             String body = "";
 
-            if (text.startsWith("{") && text.contains("\"")) {
+            if (text != null && text.trim().startsWith("{")) {
                 try {
                     com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                    Map map = mapper.readValue(text, Map.class);
-                    title = map.getOrDefault("title", "").toString();
-                    excerpt = map.getOrDefault("excerpt", "").toString();
-                    body = map.getOrDefault("content", "").toString();
+                    Map map = mapper.readValue(text.trim(), Map.class);
+                    if (map != null) {
+                        title = map.getOrDefault("title", "").toString();
+                        excerpt = map.getOrDefault("excerpt", "").toString();
+                        body = map.getOrDefault("content", "").toString();
+                    }
                 } catch (Exception ignored) {}
             }
 
-            if (title.isEmpty() && (text.contains("TITLE:") || text.contains("EXCERPT:") || text.contains("CONTENT:"))) {
+            if (title.isEmpty() && excerpt.isEmpty() && body.isEmpty() && (text.contains("TITLE:") || text.contains("EXCERPT:") || text.contains("CONTENT:"))) {
                 int titleIdx = text.indexOf("TITLE:");
                 int excerptIdx = text.indexOf("EXCERPT:");
                 int contentIdx = text.indexOf("CONTENT:");
@@ -135,8 +137,8 @@ public class AiAssistService {
                 excerpt = clean.length() > 150 ? clean.substring(0, 150) + "..." : clean;
             }
             if (body.isEmpty()) {
-                body = text.startsWith("<p>") ? text : "<p>" + clean + "</p>";
-            } else if (!body.startsWith("<p>")) {
+                body = (body.startsWith("<p>") || body.startsWith("<")) ? body : "<p>" + clean + "</p>";
+            } else if (!body.startsWith("<")) {
                 body = "<p>" + body + "</p>";
             }
 
