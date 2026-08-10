@@ -79,9 +79,40 @@ public class AiAssistService {
         String clean = text.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
         
         if ("translate".equalsIgnoreCase(action)) {
-            String title = clean.length() > 60 ? clean.substring(0, 60) : (clean.isEmpty() ? "News Article" : clean);
-            String excerpt = clean.length() > 150 ? clean.substring(0, 150) + "..." : clean;
-            String body = text.startsWith("<p>") ? text : "<p>" + clean + "</p>";
+            String title = "";
+            String excerpt = "";
+            String body = "";
+
+            if (text.contains("TITLE:") || text.contains("EXCERPT:") || text.contains("CONTENT:")) {
+                int titleIdx = text.indexOf("TITLE:");
+                int excerptIdx = text.indexOf("EXCERPT:");
+                int contentIdx = text.indexOf("CONTENT:");
+
+                if (titleIdx != -1) {
+                    int end = (excerptIdx != -1) ? excerptIdx : ((contentIdx != -1) ? contentIdx : text.length());
+                    title = text.substring(titleIdx + 6, end).trim();
+                }
+                if (excerptIdx != -1) {
+                    int end = (contentIdx != -1) ? contentIdx : text.length();
+                    excerpt = text.substring(excerptIdx + 8, end).trim();
+                }
+                if (contentIdx != -1) {
+                    body = text.substring(contentIdx + 8).trim();
+                }
+            }
+
+            if (title.isEmpty()) {
+                title = clean.length() > 60 ? clean.substring(0, 60) : (clean.isEmpty() ? "News Article" : clean);
+            }
+            if (excerpt.isEmpty()) {
+                excerpt = clean.length() > 150 ? clean.substring(0, 150) + "..." : clean;
+            }
+            if (body.isEmpty()) {
+                body = text.startsWith("<p>") ? text : "<p>" + clean + "</p>";
+            } else if (!body.startsWith("<p>")) {
+                body = "<p>" + body + "</p>";
+            }
+
             return "TITLE:\n" + title + "\n\nEXCERPT:\n" + excerpt + "\n\nCONTENT:\n" + body;
         } else if ("summarize".equalsIgnoreCase(action)) {
             return clean.length() > 200 ? clean.substring(0, 200) + "..." : clean;

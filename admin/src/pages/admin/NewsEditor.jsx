@@ -1224,18 +1224,17 @@ const NewsEditor = () => {
           categoryList: catNames
         });
         raw = res.data?.resultText || '';
-        if (!raw || raw.includes('"isFallback": true') || raw.includes('"isFallback":true')) {
-          isFallback = true;
-        }
       } catch (proxyErr) {
-        console.warn('Backend proxy AI call failed, falling back to browser Gemini call...', proxyErr);
-        isFallback = true;
+        console.warn('Backend proxy AI call failed, attempting direct Gemini call...', proxyErr);
       }
 
-      // If backend served dummy fallback or failed, use direct Gemini API from browser!
-      if (isFallback || !raw) {
+      if (!raw) {
         const prompt = `You are a professional Tamil & English news editor for Kings 24x7. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nPerform the following:\n1. Proofread and correct grammar/spelling in English AND translate/proofread into high-quality Tamil.\n2. Create production-ready HTML for contentTa (Tamil) and contentEn (English).\n3. Create proper headlines (titleTa in Tamil, titleEn in English).\n4. Create 1-2 sentence excerpts (shortDescTa in Tamil, shortDescEn in English).\n5. Create SEO metadata for BOTH languages:\n   - metaKeywordsTa: 4-8 comma-separated news tags in TAMIL script (e.g. "செய்திகள், தமிழ்நாடு, சென்னை, அரசியல்")\n   - metaKeywordsEn: 4-8 comma-separated news tags in ENGLISH (e.g. "news, tamil nadu, chennai, politics")\n   - focusKeywordsTa: main focus keyword in TAMIL (e.g. "செய்திகள்")\n   - focusKeywordsEn: main focus keyword in ENGLISH (e.g. "news")\n   - metaTitleTa: SEO title in TAMIL\n   - metaTitleEn: SEO title in ENGLISH\n   - metaDescriptionTa: SEO description in TAMIL\n   - metaDescriptionEn: SEO description in ENGLISH\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitleTa, metaTitleEn, metaDescriptionTa, metaDescriptionEn, focusKeywordsTa, focusKeywordsEn, metaKeywordsTa, metaKeywordsEn, slug, categoryId, suggestedSource, suggestedLocation.`;
-        raw = await callGemini(prompt);
+        try {
+          raw = await callGemini(prompt);
+        } catch (e) {
+          console.warn('Browser Gemini fallback failed:', e);
+        }
       }
 
       let parsed = cleanAndParseJson(raw);

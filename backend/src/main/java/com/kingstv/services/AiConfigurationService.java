@@ -384,16 +384,41 @@ public class AiConfigurationService {
         }
         content = content.replaceAll("^\"|\"$", "").trim();
 
-        String cleanText = content.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
-        String firstSentence = cleanText.length() > 150 ? cleanText.substring(0, 150) + "..." : cleanText;
-        if (firstSentence.isEmpty()) firstSentence = "Kings TV News Update";
+        String title = "";
+        String excerpt = "";
+        String body = content;
 
-        String titleEn = firstSentence.length() > 60 ? firstSentence.substring(0, 60) : firstSentence;
-        String titleTa = titleEn;
+        if (content.contains("TITLE:") || content.contains("EXCERPT:") || content.contains("CONTENT:")) {
+            int titleIdx = content.indexOf("TITLE:");
+            int excerptIdx = content.indexOf("EXCERPT:");
+            int contentIdx = content.indexOf("CONTENT:");
+
+            if (titleIdx != -1) {
+                int end = (excerptIdx != -1) ? excerptIdx : ((contentIdx != -1) ? contentIdx : content.length());
+                title = content.substring(titleIdx + 6, end).trim();
+            }
+            if (excerptIdx != -1) {
+                int end = (contentIdx != -1) ? contentIdx : content.length();
+                excerpt = content.substring(excerptIdx + 8, end).trim();
+            }
+            if (contentIdx != -1) {
+                body = content.substring(contentIdx + 8).trim();
+            }
+        }
+
+        String cleanText = body.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+        if (title.isEmpty()) {
+            title = cleanText.length() > 60 ? cleanText.substring(0, 60) : (cleanText.isEmpty() ? "Kings TV News Update" : cleanText);
+        }
+        if (excerpt.isEmpty()) {
+            excerpt = cleanText.length() > 150 ? cleanText.substring(0, 150) + "..." : cleanText;
+        }
+
+        String titleTa = title;
+        String titleEn = title;
+        String contentHtml = body.startsWith("<p>") ? body : "<p>" + cleanText + "</p>";
         String slug = titleEn.toLowerCase().replaceAll("[^a-z0-9\\s]", "").replaceAll("\\s+", "-");
         if (slug.isEmpty()) slug = "news-update-" + System.currentTimeMillis();
-
-        String contentHtml = content.startsWith("<p>") ? content : "<p>" + content + "</p>";
 
         return String.format("""
             {
@@ -429,17 +454,17 @@ public class AiConfigurationService {
             escapeJson(titleEn),
             escapeJson(contentHtml),
             escapeJson(contentHtml),
-            escapeJson(firstSentence),
-            escapeJson(firstSentence),
-            escapeJson(firstSentence),
-            escapeJson(firstSentence),
+            escapeJson(excerpt),
+            escapeJson(excerpt),
+            escapeJson(excerpt),
+            escapeJson(excerpt),
             escapeJson(titleEn),
             escapeJson(titleEn),
             escapeJson(titleTa),
             escapeJson(titleEn),
-            escapeJson(firstSentence),
-            escapeJson(firstSentence),
-            escapeJson(firstSentence),
+            escapeJson(excerpt),
+            escapeJson(excerpt),
+            escapeJson(excerpt),
             slug
         );
     }
