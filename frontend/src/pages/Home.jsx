@@ -1156,23 +1156,19 @@ const Home = () => {
   };
 
   const renderLiveTv = () => {
-    const activeVideo = liveVideo || {
-      youtubeUrl: 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX'
-    };
-    let liveStreamUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
-    
-    // Intercept old dummy database video URLs ("cat falling" / 2g811Eo7K8U / hw7Fjh6mncQ / live1)
-    if (liveStreamUrl.includes('2g811Eo7K8U') || liveStreamUrl.includes('hw7Fjh6mncQ') || liveStreamUrl.includes('live1')) {
-      liveStreamUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
-    }
+    const activeVideo = liveVideo || {};
+    let rawUrl = activeVideo.videoUrl || activeVideo.youtubeUrl || '';
+    const DEFAULT_EMBED = 'https://www.youtube.com/embed/jfKfPfyJRdk';
 
-    let embedUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
-    if (liveStreamUrl.includes('embed/')) {
-      embedUrl = liveStreamUrl;
-    } else {
-      const videoIdMatch = liveStreamUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-      if (videoIdMatch && videoIdMatch[1]) {
-        embedUrl = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+    let embedUrl = DEFAULT_EMBED;
+    if (rawUrl && !rawUrl.includes('live_stream?channel=') && !rawUrl.includes('live1')) {
+      if (rawUrl.includes('embed/')) {
+        embedUrl = rawUrl;
+      } else {
+        const videoIdMatch = rawUrl.match(/(?:v=|\/|embed\/|youtu\.be\/)([0-9A-Za-z_-]{11})/);
+        if (videoIdMatch && videoIdMatch[1]) {
+          embedUrl = `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+        }
       }
     }
 

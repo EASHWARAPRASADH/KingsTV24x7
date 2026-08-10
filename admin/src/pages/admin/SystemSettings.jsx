@@ -23,6 +23,7 @@ const SystemSettings = () => {
     pwaBackgroundColor: '#ffffff',
     youtubeApiKey: '',
     youtubeChannelId: '',
+    weatherApiKey: '',
     renderApiKey: '',
     vercelApiKey: '',
     primaryFont: 'Inter',
@@ -61,6 +62,7 @@ const SystemSettings = () => {
             if (item.configKey === 'pwa.background_color') mapped.pwaBackgroundColor = item.configValue || '#ffffff';
             if (item.configKey === 'youtube.api_key') mapped.youtubeApiKey = item.configValue || '';
             if (item.configKey === 'youtube.channel_id') mapped.youtubeChannelId = item.configValue || '';
+            if (item.configKey === 'weather.api_key') mapped.weatherApiKey = item.configValue || '';
             if (item.configKey === 'hosting.render_api_key') mapped.renderApiKey = item.configValue || '';
             if (item.configKey === 'hosting.vercel_api_key') mapped.vercelApiKey = item.configValue || '';
             if (item.configKey === 'font.primary') mapped.primaryFont = item.configValue || 'Inter';
@@ -159,6 +161,10 @@ const SystemSettings = () => {
         await api.put('/admin/config/youtube', { 
           apiKey: config.youtubeApiKey, 
           channelId: config.youtubeChannelId 
+        });
+      } else if (group === 'weather') {
+        await api.put('/admin/config/weather', { 
+          apiKey: config.weatherApiKey 
         });
       } else if (group === 'hosting') {
         await api.put('/admin/config/hosting', { 

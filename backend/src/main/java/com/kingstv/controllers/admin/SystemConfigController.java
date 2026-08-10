@@ -275,6 +275,16 @@ public class SystemConfigController {
         return null;
     }
 
+    // --- Weather Config ---
+    @PutMapping("/weather")
+    public ResponseEntity<?> updateWeatherConfig(@RequestBody Map<String, String> request) {
+        Long userId = getCallerId();
+        setConfigsIfPresent(request, new String[][]{
+            {SystemConfig.WEATHER_API_KEY, "apiKey"}
+        }, "weather", userId);
+        return ResponseEntity.ok(Map.of("message", "Weather API config updated"));
+    }
+
     // --- Telegram Config ---
     @PutMapping("/telegram")
     public ResponseEntity<?> updateTelegramConfig(@RequestBody Map<String, String> request) {

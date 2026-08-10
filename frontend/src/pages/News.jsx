@@ -791,19 +791,17 @@ const News = () => {
                     </div>
                     <div style={{ position: 'relative', width: '100%', height: '175px', borderRadius: '10px', overflow: 'hidden' }}>
                       {(() => {
-                        let rawUrl = liveVideo?.youtubeUrl || liveVideo?.videoUrl || 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
-                        
-                        // Intercept old dummy database video URLs ("cat falling" / 2g811Eo7K8U / hw7Fjh6mncQ / live1)
-                        if (rawUrl.includes('2g811Eo7K8U') || rawUrl.includes('hw7Fjh6mncQ') || rawUrl.includes('live1')) {
-                          rawUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
-                        }
+                        let rawUrl = liveVideo?.youtubeUrl || liveVideo?.videoUrl || '';
+                        const DEFAULT_EMBED = 'https://www.youtube.com/embed/jfKfPfyJRdk';
 
-                        let srcUrl = 'https://www.youtube.com/embed/live_stream?channel=UCfBx2Jiac84Rgpgku52CgwX';
-                        if (rawUrl.includes('embed/')) {
-                          srcUrl = rawUrl;
-                        } else {
-                          const m = rawUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-                          if (m && m[1]) srcUrl = `https://www.youtube.com/embed/${m[1]}`;
+                        let srcUrl = DEFAULT_EMBED;
+                        if (rawUrl && !rawUrl.includes('live_stream?channel=') && !rawUrl.includes('live1')) {
+                          if (rawUrl.includes('embed/')) {
+                            srcUrl = rawUrl;
+                          } else {
+                            const m = rawUrl.match(/(?:v=|\/|embed\/|youtu\.be\/)([0-9A-Za-z_-]{11})/);
+                            if (m && m[1]) srcUrl = `https://www.youtube.com/embed/${m[1]}`;
+                          }
                         }
                         return (
                           <iframe

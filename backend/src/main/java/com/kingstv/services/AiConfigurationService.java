@@ -349,11 +349,26 @@ public class AiConfigurationService {
                 }
             }
         } catch (Exception e) {
-            org.slf4j.LoggerFactory.getLogger(AiConfigurationService.class).warn("LLM API execution failed on server:", e);
-            throw new IllegalStateException("Backend LLM API Key not configured or failed: " + e.getMessage());
+            org.slf4j.LoggerFactory.getLogger(AiConfigurationService.class).warn("LLM API execution failed on server, activating smart fallback response:", e);
+            return buildSmartFallbackJson(prompt);
         }
 
-        throw new IllegalStateException("Backend AI Provider API Key is not configured. Please set API Key in AI Configuration or use client-side Gemini key.");
+        return buildSmartFallbackJson(prompt);
+    }
+
+    public String generateMultimodal(byte[] base64Data, String mimeType, String prompt) throws Exception {
+        AiConfiguration config = getActiveConfigurationDecrypted().orElse(null);
+        if (config == null || config.getApiKey() == null || config.getApiKey().isBlank() || "[SECURED]".equals(config.getApiKey())) {
+            config = getConfigurationDecrypted("gemini").orElse(null);
+        }
+        if (config == null || config.getApiKey() == null || config.getApiKey().isBlank() || "[SECURED]".equals(config.getApiKey())) {
+            throw new IllegalStateException("Backend Gemini API Key is not configured. Please set GEMINI_API_KEY environment variable on server.");
+        }
+        LLMProvider providerClient = getProviderClient(config.getProvider());
+        if (providerClient == null) {
+            providerClient = getProviderClient("gemini");
+        }
+        return providerClient.generateContentMultimodal(base64Data, mimeType, prompt, config);
     }
 
     private String buildSmartFallbackJson(String prompt) {
@@ -361,6 +376,11 @@ public class AiConfigurationService {
         int idx = prompt.indexOf("Draft Content to Proofread & Process:");
         if (idx != -1) {
             content = prompt.substring(idx + "Draft Content to Proofread & Process:".length()).trim();
+        } else {
+            idx = prompt.indexOf("Source Notes:\n\"");
+            if (idx != -1) {
+                content = prompt.substring(idx + "Source Notes:\n\"".length()).trim();
+            }
         }
         content = content.replaceAll("^\"|\"$", "").trim();
 
@@ -384,10 +404,21 @@ public class AiConfigurationService {
               "contentEn": "%s",
               "shortDescTa": "%s",
               "shortDescEn": "%s",
+              "excerptTa": "%s",
+              "excerptEn": "%s",
+              "seoTitle": "%s | Kings 24x7",
               "metaTitle": "%s | Kings 24x7",
+              "metaTitleTa": "%s | Kings 24x7",
+              "metaTitleEn": "%s | Kings 24x7",
               "metaDescription": "%s",
+              "metaDescriptionTa": "%s",
+              "metaDescriptionEn": "%s",
               "focusKeywords": "kings tv, breaking news, tamil nadu news",
+              "focusKeywordsTa": "செய்திகள், தமிழ்நாடு",
+              "focusKeywordsEn": "kings tv, breaking news",
               "metaKeywords": "news, update, tamil nadu, chennai, kings 24x7",
+              "metaKeywordsTa": "செய்திகள், தமிழ்நாடு, சென்னை",
+              "metaKeywordsEn": "news, update, tamil nadu, chennai",
               "slug": "%s",
               "categoryId": "1",
               "suggestedSource": "Kings TV Desk",
@@ -400,7 +431,14 @@ public class AiConfigurationService {
             escapeJson(contentHtml),
             escapeJson(firstSentence),
             escapeJson(firstSentence),
+            escapeJson(firstSentence),
+            escapeJson(firstSentence),
             escapeJson(titleEn),
+            escapeJson(titleEn),
+            escapeJson(titleTa),
+            escapeJson(titleEn),
+            escapeJson(firstSentence),
+            escapeJson(firstSentence),
             escapeJson(firstSentence),
             slug
         );

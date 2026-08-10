@@ -26,6 +26,7 @@ public class SystemConfigService {
     private static final List<String> ENCRYPTED_KEYS = List.of(
         SystemConfig.SMTP_PASSWORD,
         SystemConfig.SMS_GATEWAY_API_KEY,
+        SystemConfig.WEATHER_API_KEY,
         SystemConfig.YOUTUBE_API_KEY,
         SystemConfig.CDN_API_KEY,
         SystemConfig.LIVE_STREAM_KEY,

@@ -5,9 +5,9 @@ import { Save, Sparkles, Key, Settings, Globe, Search, RefreshCw, CheckCircle, A
 const PROVIDER_PRESETS = {
   gemini: {
     label: 'Google Gemini',
-    defaultUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    defaultModel: 'gemini-flash-latest',
-    models: ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-3.6-flash', 'gemini-2.0-flash-001']
+    defaultUrl: 'https://generativelanguage.googleapis.com/v1',
+    defaultModel: 'gemini-2.0-flash',
+    models: ['gemini-2.0-flash', 'gemini-1.5-flash']
   },
   openai: {
     label: 'OpenAI GPT',

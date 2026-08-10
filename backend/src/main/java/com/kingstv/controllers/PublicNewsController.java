@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/public")
-@CrossOrigin(origins = "*") // Public API
 public class PublicNewsController {
     @Autowired
     private ArticleRepository articleRepository;

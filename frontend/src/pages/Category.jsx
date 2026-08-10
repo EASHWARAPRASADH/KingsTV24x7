@@ -54,14 +54,6 @@ const Category = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (slug === 'regional') {
-      navigate('/directory', { replace: true });
-    }
-  }, [slug, navigate]);
-
-
-
   // Determine category key (cat query param has precedence, otherwise URL slug, default to 'politics')
   const catKey = (searchParams.get('cat') || slug || 'politics').toLowerCase();
 
@@ -419,6 +411,28 @@ const Category = () => {
           gradient: 'linear-gradient(135deg, #1E40AF, #3B82F6)'
         }
       ]
+    },
+    regional: {
+      titleTa: 'மண்டலச் செய்திகள்',
+      titleEn: 'Regional News',
+      breadTa: 'மண்டலம்',
+      breadEn: 'Regional',
+      themeClass: 'theme-regional',
+      color: '#059669',
+      subcatsTa: ['அனைத்தும்', 'தமிழ்நாடு', 'மாவட்டங்கள்', 'உள்ளூர்'],
+      subcatsEn: ['All', 'Tamil Nadu', 'Districts', 'Local'],
+      articles: []
+    },
+    'our-town': {
+      titleTa: 'நம்ம ஊர் செய்திகள்',
+      titleEn: 'Our Town News',
+      breadTa: 'நம்ம ஊர்',
+      breadEn: 'Regional',
+      themeClass: 'theme-regional',
+      color: '#059669',
+      subcatsTa: ['அனைத்தும்', 'தமிழ்நாடு', 'மாவட்டங்கள்', 'உள்ளூர்'],
+      subcatsEn: ['All', 'Tamil Nadu', 'Districts', 'Local'],
+      articles: []
     }
   };
 
@@ -442,9 +456,9 @@ const Category = () => {
 
   useEffect(() => {
     // Dynamically apply category color theme class to body
-    document.body.classList.add(currentCat.themeClass);
+    document.body.classList.add(currentCat.themeClass || 'theme-politics');
     return () => {
-      document.body.classList.remove(currentCat.themeClass);
+      document.body.classList.remove(currentCat.themeClass || 'theme-politics');
     };
   }, [currentCat]);
 
@@ -457,7 +471,7 @@ const Category = () => {
     fetchApi('/articles/getAllWeb?size=200')
       .then(res => {
         const data = res?.content || (Array.isArray(res) ? res : []);
-        const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, regional: 6, international: 7, world: 7 };
+        const catIdMap = { politics: 1, business: 2, sports: 3, cinema: 4, tech: 5, regional: 6, 'our-town': 6, international: 7, world: 7 };
         const targetId = matchedDbCat ? matchedDbCat.id : (catIdMap[catKey] || 1);
 
         const filtered = data.filter(item => {
@@ -566,10 +580,6 @@ const Category = () => {
         ? ['All', ...matchedCat.subcategories.map(s => getSubcatEn(s))] 
         : ['அனைத்தும்', ...matchedCat.subcategories.map(s => s.nameTa)])
     : (lang === 'en' ? currentCat.subcatsEn : currentCat.subcatsTa);
-
-  if (slug === 'regional') {
-    return null;
-  }
 
   return (
     <main className="news-section" style={{ width: '100%', '--category-color': currentCat.color || 'var(--primary)' }}>

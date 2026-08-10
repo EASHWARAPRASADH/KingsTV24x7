@@ -148,6 +148,24 @@ public class AiConfigurationController {
         }
     }
 
+    @PostMapping("/generate-multimodal")
+    @RequiresPermission(Permission.ARTICLE_CREATE)
+    public ResponseEntity<?> generateMultimodal(@RequestBody Map<String, String> request) {
+        String base64Data = request.get("base64Data");
+        String mimeType = request.get("mimeType");
+        String prompt = request.get("prompt");
+        if (base64Data == null || base64Data.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Source base64Data is required"));
+        }
+        try {
+            byte[] bytes = java.util.Base64.getDecoder().decode(base64Data);
+            String resultText = aiConfigurationService.generateMultimodal(bytes, mimeType != null ? mimeType : "application/pdf", prompt);
+            return ResponseEntity.ok(Map.of("resultText", resultText));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "AI Multimodal Error: " + e.getMessage()));
+        }
+    }
+
     private Long getCallerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getDetails() instanceof Long) return (Long) auth.getDetails();

@@ -9,7 +9,19 @@ import java.util.*;
 @RequestMapping({"/api/v1/weather", "/api/weather"})
 public class WeatherController {
 
-    private final String apiKey = "091acd3c80db2f3c1676f60ad2fa55d0";
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.kingstv.services.SystemConfigService systemConfigService;
+
+    private String getApiKey() {
+        String envKey = System.getenv("WEATHER_API_KEY");
+        if (envKey != null && !envKey.isBlank()) return envKey.trim();
+        if (systemConfigService != null) {
+            String dbKey = systemConfigService.getConfigValue("weather.api_key");
+            if (dbKey != null && !dbKey.isBlank()) return dbKey.trim();
+        }
+        return "093a08cc906ab147fe8d8f306a799653";
+    }
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     @GetMapping
@@ -38,23 +50,35 @@ public class WeatherController {
             }
         }
 
+        String activeKey = getApiKey();
         try {
             // 1. Fetch current weather from OpenWeatherMap
             String url = String.format(Locale.US, "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric", 
-                                       latitude, longitude, apiKey);
+                                       latitude, longitude, activeKey);
             Map<String, Object> currentResponse = restTemplate.getForObject(url, Map.class);
 
             // 2. Fetch 5-day forecast from OpenWeatherMap
             String forecastUrl = String.format(Locale.US, "https://api.openweathermap.org/data/2.5/forecast?lat=%f&lon=%f&appid=%s&units=metric", 
-                                               latitude, longitude, apiKey);
+                                               latitude, longitude, activeKey);
             Map<String, Object> forecastResponse = restTemplate.getForObject(forecastUrl, Map.class);
 
             // Parse response and format response JSON
             Map<String, Object> result = formatWeatherResponse(currentResponse, forecastResponse, cityName);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            // Retry with backup key if primary key is activating
+            try {
+                String backupKey = "091acd3c80db2f3c1676f60ad2fa55d0";
+                String url = String.format(Locale.US, "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric", 
+                                           latitude, longitude, backupKey);
+                Map<String, Object> currentResponse = restTemplate.getForObject(url, Map.class);
+                String forecastUrl = String.format(Locale.US, "https://api.openweathermap.org/data/2.5/forecast?lat=%f&lon=%f&appid=%s&units=metric", 
+                                                   latitude, longitude, backupKey);
+                Map<String, Object> forecastResponse = restTemplate.getForObject(forecastUrl, Map.class);
+                return ResponseEntity.ok(formatWeatherResponse(currentResponse, forecastResponse, cityName));
+            } catch (Exception ex) {
+                return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            }
         }
     }
 

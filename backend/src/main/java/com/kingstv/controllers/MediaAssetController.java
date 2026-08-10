@@ -110,6 +110,23 @@ public class MediaAssetController {
         }
     }
 
+    @PutMapping("/{id}")
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.SUB_EDITOR, Role.SECTION_EDITOR, Role.DISTRICT_ADMIN, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
+    public ResponseEntity<?> updateMediaFilename(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String newName = body.get("name");
+        if (newName == null || newName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "New filename is required"));
+        }
+        Optional<MediaAsset> opt = mediaAssetRepository.findById(id);
+        if (opt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Media not found"));
+        }
+        MediaAsset asset = opt.get();
+        asset.setFilename(newName.trim());
+        MediaAsset updated = mediaAssetRepository.save(asset);
+        return ResponseEntity.ok(updated);
+    }
+
     @DeleteMapping("/{id}")
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR})
     public ResponseEntity<?> deleteMedia(@PathVariable Long id) {

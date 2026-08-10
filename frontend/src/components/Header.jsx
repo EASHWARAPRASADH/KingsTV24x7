@@ -291,10 +291,12 @@ const Header = () => {
         { id: 'home', path: '/', label: lang === 'en' ? 'Home' : 'முகப்பு', subcategories: [] },
         {
           id: 'regional',
-          path: '/directory',
+          path: '/category/regional',
           label: lang === 'en' ? 'Regional' : 'நம்ம ஊர்',
           subcategories: [
-            { id: 'reg-dir', slug: 'directory', path: '/directory', name: 'Local Business Directory', nameTa: 'நம்ம ஊர்' },
+            { id: 'reg-tn', slug: 'regional-tamilnadu', path: '/category/regional?subcat=Tamil+Nadu', name: 'Tamil Nadu', nameTa: 'தமிழ்நாடு' },
+            { id: 'reg-dist', slug: 'districts', path: '/category/regional?subcat=Districts', name: 'Districts', nameTa: 'மாவட்டங்கள்' },
+            { id: 'reg-dir', slug: 'directory', path: '/directory', name: 'Local Business Directory', nameTa: 'உள்ளூர் வணிகம்' },
             { id: 'reg-deals', slug: 'deals', path: '/deals', name: 'Deals', nameTa: 'சலுகைகள்' },
             { id: 'reg-rfq', slug: 'rfq', path: '/rfq', name: 'RFQ', nameTa: 'கோரிக்கைகள்' }
           ]

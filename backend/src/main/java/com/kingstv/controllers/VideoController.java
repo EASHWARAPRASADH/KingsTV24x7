@@ -40,7 +40,7 @@ public class VideoController {
         // Fallback: Create and save a default working Live TV video entry in DB if none exists
         VideoContent fallbackLive = new VideoContent();
         fallbackLive.setTitle("KINGS 24x7 Live Broadcast | கிங்ஸ் 24x7 நேரலை");
-        fallbackLive.setYoutubeUrl("https://www.youtube.com/embed/2g811Eo7K8U");
+        fallbackLive.setYoutubeUrl("https://www.youtube.com/embed/jfKfPfyJRdk");
         fallbackLive.setThumbnailUrl("https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800");
         fallbackLive.setDescription("Watch continuous live news coverage in Tamil & English.");
         fallbackLive.setIsLiveTv(1);

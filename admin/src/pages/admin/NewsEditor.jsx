@@ -9,111 +9,31 @@ import DatePickerInput from '../../components/common/DatePickerInput';
 import { useAuth } from '../../context/AuthContext';
 import MediaSelectModal from '../../components/common/MediaSelectModal';
 
-// ── Gemini AI helper ─────────────────────────────────────────────────────────
-const DEFAULT_GEMINI_KEY = '';
-
+// ── Secure Backend AI Helpers ────────────────────────────────────────────────
 export let activeAiConfig = { 
-  apiKey: '', 
-  apiUrl: '', 
   model: 'gemini-2.0-flash' 
 };
 
-export const getGeminiUrl = (modelOverride, apiKeyOverride) => {
-  const model = modelOverride || activeAiConfig.model || 'gemini-2.0-flash';
-  const key = apiKeyOverride 
-    || activeAiConfig.apiKey 
-    || localStorage.getItem('gemini_api_key') 
-    || localStorage.getItem('ai.llm_api_key') 
-    || localStorage.getItem('ai_llm_api_key') 
-    || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
-    || DEFAULT_GEMINI_KEY;
-  return `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`;
-};
-
-const callGemini = async (prompt) => {
-  const apiKey = activeAiConfig.apiKey 
-    || localStorage.getItem('gemini_api_key') 
-    || localStorage.getItem('ai.llm_api_key') 
-    || localStorage.getItem('ai_llm_api_key') 
-    || (import.meta.env && import.meta.env.VITE_GEMINI_API_KEY)
-    || (import.meta.env && import.meta.env.VITE_YOUTUBE_API_KEY)
-    || DEFAULT_GEMINI_KEY;
-  if (!apiKey) {
-    throw new Error('Gemini API Key is missing. Please enter your API Key in System Settings.');
-  }
-
+const callGemini = async (prompt, action = 'assist') => {
   const promptText = (prompt || '').trim();
   if (!promptText) {
     throw new Error('AI Prompt is empty. Please enter an article title or notes for AI generation.');
   }
 
-  const configuredModel = (!activeAiConfig.model || activeAiConfig.model.includes('1.5')) ? 'gemini-2.0-flash' : activeAiConfig.model;
-  const modelsToTry = [
-    configuredModel,
-    'gemini-2.0-flash',
-    'gemini-flash-latest',
-    'gemini-2.5-flash'
-  ];
-  
-  const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
-  let lastError = null;
-
-  for (const model of uniqueModels) {
-    try {
-      const url = getGeminiUrl(model, apiKey);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(apiKey ? { 'X-goog-api-key': apiKey } : {}) 
-        },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        let errorMsg = errorData?.error?.message || `HTTP ${res.status}`;
-        if (res.status === 429) {
-          errorMsg = errorData?.error?.message || 'Google AI Prepayment credits depleted or rate limit exceeded. Please top up credits or create a free key at https://aistudio.google.com';
-        }
-        lastError = new Error(`Gemini (${model}): ${errorMsg}`);
-        console.warn(`Model ${model} failed:`, errorMsg);
-        continue;
-      }
-
-      const data = await res.json();
-      const resultText = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
-      if (resultText) return resultText;
-    } catch (err) {
-      lastError = err;
-      console.warn(`Model ${model} error:`, err);
-    }
+  const res = await api.post('/articles/ai-assist', { action, text: promptText });
+  if (res.data && res.data.result) {
+    return res.data.result;
   }
-
-  throw lastError || new Error('Gemini API call failed on all model endpoints.');
+  throw new Error(res.data?.message || 'Backend AI Service unavailable');
 };
 
 const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
-  const apiKey = activeAiConfig.apiKey || localStorage.getItem('ai.llm_api_key') || localStorage.getItem('ai_llm_api_key') || localStorage.getItem('gemini_api_key') || '';
-  if (!apiKey) throw new Error('API Key missing. Click "🔑 Set API Key" to enter key.');
   if (!base64Data || !base64Data.trim()) throw new Error('Source file data is empty or invalid.');
-  
-  const url = getGeminiUrl();
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-goog-api-key': apiKey } : {}) },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { inlineData: { data: base64Data, mimeType: mimeType } },
-          { text: prompt }
-        ]
-      }]
-    }),
-  });
-  if (!res.ok) throw new Error(`Multimodal failed: ${res.status}`);
-  const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  const res = await api.post('/admin/ai-config/generate-multimodal', { base64Data, mimeType, prompt });
+  if (res.data && res.data.resultText) {
+    return res.data.resultText;
+  }
+  throw new Error(res.data?.message || 'Backend AI Multimodal processing failed');
 };
 
 const slugify = (text) => {
@@ -1569,11 +1489,20 @@ const NewsEditor = () => {
       return String(val).slice(0, 240);
     };
 
+    const cleanLong = (val) => {
+      if (val === null || val === undefined || val === '') return null;
+      const num = Number(val);
+      return isNaN(num) ? null : num;
+    };
+
     setSaving(true);
     setMsg(null);
     try {
       const payload = { 
         ...form, 
+        categoryId: cleanLong(form.categoryId),
+        subcategoryId: cleanLong(form.subcategoryId),
+        districtId: cleanLong(form.districtId),
         titleTa: finalTitleTa,
         titleEn: finalTitleEn,
         shortDescTa: finalDescTa,
@@ -1600,6 +1529,11 @@ const NewsEditor = () => {
         res = await api.post('/articles', payload);
       }
       
+      // Clear local draft backup after successful save/publish
+      const draftKey = `news_editor_draft_${isEdit ? id : 'new'}`;
+      localStorage.removeItem(draftKey);
+      setHasDraftBackup(false);
+
       const successLabel = targetStatus === 'published' 
         ? 'published' 
         : (targetStatus === 'pending_review' ? 'submitted for Chief Editor review' : 'saved as draft');

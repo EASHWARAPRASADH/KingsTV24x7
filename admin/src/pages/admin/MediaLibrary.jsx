@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Image as ImageIcon, Film, FileText, Download, Copy, Trash2, Search, Filter,
-  Grid, List, Upload, X, ChevronLeft, ChevronRight, Eye, Check, AlertTriangle
+  Grid, List, Upload, X, ChevronLeft, ChevronRight, Eye, Check, AlertTriangle, Edit3
 } from 'lucide-react';
 import api from '../../api';
 
@@ -68,7 +68,7 @@ const CategoryIcon = ({ category, size = 36 }) => {
 };
 
 // ── Media Card (Grid) ───────────────────────────────────────────────────────
-const MediaCard = ({ item, onCopy, onDelete, onPreview, selected, onSelect }) => {
+const MediaCard = ({ item, onCopy, onRename, onDelete, onPreview, selected, onSelect }) => {
   const isImage = item.category === 'image';
   const isVideo = item.category === 'video';
 
@@ -160,6 +160,14 @@ const MediaCard = ({ item, onCopy, onDelete, onPreview, selected, onSelect }) =>
         </div>
         <div style={{ display: 'flex', gap: '0.35rem' }}>
           <button
+            onClick={(e) => { e.stopPropagation(); onRename(item); }}
+            className="btn btn-secondary"
+            style={{ padding: '4px 6px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}
+            title="Rename file"
+          >
+            <Edit3 size={11} /> Rename
+          </button>
+          <button
             onClick={(e) => { e.stopPropagation(); onCopy(item.url); }}
             className="btn btn-secondary"
             style={{ flex: 1, padding: '4px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}
@@ -179,7 +187,7 @@ const MediaCard = ({ item, onCopy, onDelete, onPreview, selected, onSelect }) =>
 };
 
 // ── Media Row (List) ────────────────────────────────────────────────────────
-const MediaRow = ({ item, onCopy, onDelete, onPreview, selected, onSelect }) => (
+const MediaRow = ({ item, onCopy, onRename, onDelete, onPreview, selected, onSelect }) => (
   <div
     style={{
       display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1rem',
@@ -210,6 +218,9 @@ const MediaRow = ({ item, onCopy, onDelete, onPreview, selected, onSelect }) => 
           <Download size={13} /> Download
         </a>
       )}
+      <button onClick={(e) => { e.stopPropagation(); onRename(item); }} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
+        <Edit3 size={13} /> Rename
+      </button>
       <button onClick={(e) => { e.stopPropagation(); onCopy(item.url); }} className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '3px' }}>
         <Copy size={13} /> Copy URL
       </button>
@@ -234,8 +245,9 @@ const MediaLibrary = () => {
   const [page, setPage] = useState(1);
 
   const [selected, setSelected] = useState(new Set());
-  const [previewItem, setPreviewItem] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [renameItem, setRenameItem] = useState(null);
+  const [renameInput, setRenameInput] = useState('');
+  const [renaming, setRenaming] = useState(false);
 
   const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
@@ -351,6 +363,30 @@ const MediaLibrary = () => {
   const copyUrl = (url) => {
     navigator.clipboard.writeText(getPreviewUrl(url));
     showToast('URL copied to clipboard!');
+  };
+
+  const openRenameModal = (item) => {
+    setRenameItem(item);
+    setRenameInput(item.name || '');
+  };
+
+  const handleRenameSubmit = async (e) => {
+    e.preventDefault();
+    if (!renameItem || !renameInput.trim()) return;
+    const newName = renameInput.trim();
+    setRenaming(true);
+    try {
+      if (renameItem.id && typeof renameItem.id === 'number') {
+        await api.put(`/media/${renameItem.id}`, { name: newName });
+      }
+      setAllMedia(prev => prev.map(m => m.id === renameItem.id ? { ...m, name: newName } : m));
+      showToast(`✅ File renamed to "${newName}"`);
+      setRenameItem(null);
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to rename file', true);
+    } finally {
+      setRenaming(false);
+    }
   };
 
   const deleteItem = async (item) => {
@@ -611,6 +647,7 @@ const MediaLibrary = () => {
                     key={item.id}
                     item={item}
                     onCopy={copyUrl}
+                    onRename={openRenameModal}
                     onDelete={deleteItem}
                     onPreview={setPreviewItem}
                     selected={selected.has(item.id)}
@@ -625,6 +662,7 @@ const MediaLibrary = () => {
                     key={item.id}
                     item={item}
                     onCopy={copyUrl}
+                    onRename={openRenameModal}
                     onDelete={deleteItem}
                     onPreview={setPreviewItem}
                     selected={selected.has(item.id)}
@@ -706,6 +744,9 @@ const MediaLibrary = () => {
               ) : null}
             </div>
             <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button onClick={() => { openRenameModal(previewItem); setPreviewItem(null); }} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                <Edit3 size={14} /> Rename
+              </button>
               <button onClick={() => copyUrl(previewItem.url)} className="btn btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
                 <Copy size={14} /> Copy URL
               </button>
@@ -717,6 +758,52 @@ const MediaLibrary = () => {
               </span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Rename Modal */}
+      {renameItem && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={() => setRenameItem(null)}
+        >
+          <form
+            onSubmit={handleRenameSubmit}
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg-surface)', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '420px', border: '1px solid var(--border-color)', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Edit3 size={18} color="var(--primary)" /> Rename File
+              </h3>
+              <button type="button" onClick={() => setRenameItem(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={16} /></button>
+            </div>
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.4rem', display: 'block' }}>
+                New Filename
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                value={renameInput}
+                onChange={e => setRenameInput(e.target.value)}
+                placeholder="Enter new filename..."
+                autoFocus
+                required
+                style={{ width: '100%', padding: '0.65rem 0.85rem', fontSize: '0.9rem' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setRenameItem(null)} disabled={renaming}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={renaming || !renameInput.trim()}>
+                {renaming ? 'Saving...' : 'Save Name'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

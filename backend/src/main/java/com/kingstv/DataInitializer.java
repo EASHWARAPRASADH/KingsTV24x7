@@ -665,6 +665,9 @@ public class DataInitializer {
     }
 
     private void seedSystemConfig(String key, String val, String group, String desc) {
+        if (systemConfigRepository.findByConfigKey(key).isPresent()) {
+            return;
+        }
         SystemConfig sc = new SystemConfig();
         sc.setConfigKey(key);
         sc.setConfigValue(val);
@@ -675,13 +678,19 @@ public class DataInitializer {
     }
 
     private void seedProfanity(String term) {
+        if (profanityWordRepository.existsByTerm(term.trim())) {
+            return;
+        }
         ProfanityWord w = new ProfanityWord();
-        w.setTerm(term);
+        w.setTerm(term.trim());
         w.setLanguage("ALL");
         profanityWordRepository.save(w);
     }
 
     private void seedLayoutSection(String key, String label, int order, String type) {
+        if (homeLayoutConfigRepository.findBySectionKey(key).isPresent()) {
+            return;
+        }
         HomeLayoutConfig l = new HomeLayoutConfig();
         l.setSectionKey(key);
         l.setSectionLabel(label);
@@ -1079,7 +1088,7 @@ public class DataInitializer {
 
             for (Category cat : categories) {
                 long existingCount = articleRepository.countByCategoryId(cat.getId());
-                int targetCount = 0;
+                int targetCount = 10;
                 int toAdd = (int) (targetCount - existingCount);
                 if (toAdd <= 0) continue;
 

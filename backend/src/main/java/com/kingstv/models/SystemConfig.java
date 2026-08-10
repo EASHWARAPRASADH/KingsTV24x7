@@ -52,6 +52,7 @@ public class SystemConfig {
     public static final String SMTP_PASSWORD = "smtp.password";
     public static final String SMS_GATEWAY_URL = "sms.gateway_url";
     public static final String SMS_GATEWAY_API_KEY = "sms.gateway_api_key";
+    public static final String WEATHER_API_KEY = "weather.api_key";
     public static final String YOUTUBE_API_KEY = "youtube.api_key";
     public static final String YOUTUBE_CHANNEL_ID = "youtube.channel_id";
     public static final String CDN_BASE_URL = "cdn.base_url";
