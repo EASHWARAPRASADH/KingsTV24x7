@@ -22,7 +22,21 @@ public class GeminiProvider implements LLMProvider {
 
         Map<String, Object> textPart = Map.of("text", prompt);
         Map<String, Object> contentsPart = Map.of("parts", List.of(textPart));
-        Map<String, Object> body = Map.of("contents", List.of(contentsPart));
+        
+        Map<String, Object> body;
+        if (prompt.toLowerCase().contains("json") || prompt.toLowerCase().contains("schema") || prompt.toLowerCase().contains("output format")) {
+            Map<String, Object> generationConfig = new HashMap<>();
+            generationConfig.put("responseMimeType", "application/json");
+            if (prompt.contains("title_ta") && prompt.contains("canonical_url")) {
+                generationConfig.put("responseSchema", buildProofreadSchema());
+            }
+            body = Map.of(
+                "contents", List.of(contentsPart),
+                "generationConfig", generationConfig
+            );
+        } else {
+            body = Map.of("contents", List.of(contentsPart));
+        }
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
@@ -53,7 +67,21 @@ public class GeminiProvider implements LLMProvider {
         Map<String, Object> inlinePart = Map.of("inlineData", inlineData);
         Map<String, Object> textPart = Map.of("text", prompt);
         Map<String, Object> contentsPart = Map.of("parts", List.of(inlinePart, textPart));
-        Map<String, Object> body = Map.of("contents", List.of(contentsPart));
+        
+        Map<String, Object> body;
+        if (prompt.toLowerCase().contains("json") || prompt.toLowerCase().contains("schema") || prompt.toLowerCase().contains("output format")) {
+            Map<String, Object> generationConfig = new HashMap<>();
+            generationConfig.put("responseMimeType", "application/json");
+            if (prompt.contains("title_ta") && prompt.contains("canonical_url")) {
+                generationConfig.put("responseSchema", buildProofreadSchema());
+            }
+            body = Map.of(
+                "contents", List.of(contentsPart),
+                "generationConfig", generationConfig
+            );
+        } else {
+            body = Map.of("contents", List.of(contentsPart));
+        }
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
@@ -146,5 +174,45 @@ public class GeminiProvider implements LLMProvider {
             }
         }
         throw new Exception("Invalid response format or code: " + response.getStatusCode());
+    }
+
+    private Map<String, Object> buildProofreadSchema() {
+        Map<String, Object> schema = new HashMap<>();
+        schema.put("type", "OBJECT");
+        
+        Map<String, Object> properties = new HashMap<>();
+        Map<String, Object> stringType = Map.of("type", "STRING");
+        Map<String, Object> arrayOfStringType = Map.of(
+            "type", "ARRAY",
+            "items", Map.of("type", "STRING")
+        );
+        
+        properties.put("title_ta", stringType);
+        properties.put("title_en", stringType);
+        properties.put("excerpt_ta", stringType);
+        properties.put("excerpt_en", stringType);
+        properties.put("content_ta", stringType);
+        properties.put("content_en", stringType);
+        properties.put("meta_title_ta", stringType);
+        properties.put("meta_title_en", stringType);
+        properties.put("meta_description_ta", stringType);
+        properties.put("meta_description_en", stringType);
+        
+        properties.put("focus_keywords_ta", arrayOfStringType);
+        properties.put("focus_keywords_en", arrayOfStringType);
+        properties.put("tags_ta", arrayOfStringType);
+        properties.put("tags_en", arrayOfStringType);
+        
+        properties.put("slug", stringType);
+        properties.put("canonical_url", stringType);
+        
+        schema.put("properties", properties);
+        schema.put("required", List.of(
+            "title_ta", "title_en", "excerpt_ta", "excerpt_en", "content_ta", "content_en",
+            "meta_title_ta", "meta_title_en", "meta_description_ta", "meta_description_en",
+            "focus_keywords_ta", "focus_keywords_en", "tags_ta", "tags_en", "slug", "canonical_url"
+        ));
+        
+        return schema;
     }
 }

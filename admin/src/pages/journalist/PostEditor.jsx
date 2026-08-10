@@ -27,6 +27,24 @@ const callGemini = async (prompt, action = 'assist') => {
   throw new Error(res.data?.message || 'Backend AI Service unavailable');
 };
 
+const safeUrlDecode = (str) => {
+  if (!str || typeof str !== 'string') return str || '';
+  let result = str;
+  if (result.includes('%')) {
+    try {
+      if (/%[0-9A-Fa-f]{2}/.test(result)) {
+        result = decodeURIComponent(result);
+        if (/%[0-9A-Fa-f]{2}/.test(result)) {
+          result = decodeURIComponent(result);
+        }
+      }
+    } catch (e) {
+      console.warn('URL decode failed:', e);
+    }
+  }
+  return result;
+};
+
 const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
   if (!base64Data || !base64Data.trim()) throw new Error('Source file data is empty or invalid.');
   const res = await api.post('/admin/ai-config/generate-multimodal', { base64Data, mimeType, prompt });
@@ -1208,8 +1226,25 @@ const PostEditor = () => {
     const enHtml = editorRefEn.current ? editorRefEn.current.getContent({ format: 'html' }) : form.contentEn;
     const sourceTexts = mediaList.filter(m => m.text).map(m => m.text).join('\n\n');
     
-    const baseRaw = (taHtml || enHtml || sourceTexts || form.titleTa || form.titleEn || '').trim();
-    if (!baseRaw || baseRaw.replace(/<[^>]*>/g, '').trim().length < 5) {
+    const sourceLang = activeTab === 0 ? 'ta' : 'en';
+    const targetLang = activeTab === 0 ? 'en' : 'ta';
+    const titleVal = activeTab === 0 ? form.titleTa : form.titleEn;
+    const excerptVal = activeTab === 0 ? form.shortDescTa : form.shortDescEn;
+    const contentVal = activeTab === 0 ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa) : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+    const catSelected = categories.find(c => String(c.id) === String(form.categoryId))?.nameEn || 'General';
+
+    const inputObj = {
+      source_language: sourceLang,
+      target_language: targetLang,
+      title: titleVal || '',
+      excerpt: excerptVal || '',
+      content: contentVal || '',
+      category: catSelected,
+      domain: 'https://king-tv.test-technoprint.online'
+    };
+    const inputPayload = JSON.stringify(inputObj, null, 2);
+
+    if (!titleVal && !contentVal) {
       showMsg('Please write or paste content in TinyMCE first, or upload a source document.', true);
       return;
     }
@@ -1224,7 +1259,7 @@ const PostEditor = () => {
       let raw = '';
       try {
         const res = await api.post('/admin/ai-config/proofread-autofill', {
-          baseContent: baseRaw,
+          baseContent: inputPayload,
           categoryList: catNames
         });
         raw = res.data?.resultText || '';
@@ -1233,7 +1268,104 @@ const PostEditor = () => {
       }
 
       if (!raw) {
-        const prompt = `You are a professional Tamil & English chief news editor for Kings 24x7. Analyze this article draft:\n"${baseRaw.substring(0, 3000)}"\nAvailable Categories: [${catNames}]\nPerform the following:\n1. Proofread and correct grammar/spelling in English AND translate/proofread into high-quality Tamil.\n2. Create production-ready HTML for contentTa (Tamil) and contentEn (English).\n3. Create proper headlines (titleTa in Tamil, titleEn in English).\n4. Create 1-2 sentence excerpts (shortDescTa in Tamil, shortDescEn in English).\n5. Create HIGH-IMPACT SEO metadata extracted DIRECTLY from the provided content:\n   - metaKeywordsTa: 6-10 comma-separated prominent news tags/entities in TAMIL script extracted from content (proper nouns, locations, politician/event terms). Do NOT use generic words like "செய்திகள்" or "தமிழ்நாடு".\n   - metaKeywordsEn: 6-10 comma-separated prominent news tags/entities in ENGLISH extracted from content. Do NOT use generic words like "news" or "breaking".\n   - focusKeywordsTa: 2-4 main focus keyphrases in TAMIL script extracted from headline & key topic.\n   - focusKeywordsEn: 2-4 main focus keyphrases in ENGLISH extracted from headline & key topic.\n   - metaTitleTa: SEO title in TAMIL\n   - metaTitleEn: SEO title in ENGLISH\n   - metaDescriptionTa: SEO description in TAMIL\n   - metaDescriptionEn: SEO description in ENGLISH\n\nRespond in strictly valid JSON format with keys: titleTa, titleEn, contentTa, contentEn, shortDescTa, shortDescEn, metaTitleTa, metaTitleEn, metaDescriptionTa, metaDescriptionEn, focusKeywordsTa, focusKeywordsEn, metaKeywordsTa, metaKeywordsEn, slug, categoryId, suggestedSource, suggestedLocation.`;
+        const prompt = `You are the AI engine for a professional bilingual (Tamil + English) news CMS "write article" page. In a SINGLE response you must: (1) translate the article into the requested target language, (2) generate SEO metadata for BOTH languages, and (3) return everything in one strict, fixed-shape JSON object.
+
+============================================================
+ABSOLUTE RULE #1 — JSON KEYS ARE FIXED AND NEVER TRANSLATED
+============================================================
+The JSON key names listed in "OUTPUT FORMAT" below (title_ta, title_en, content_ta, content_en, etc.) are FIXED, LITERAL, ENGLISH STRINGS. You must reproduce them EXACTLY, character-for-character, in every response, regardless of what language the article is in or being translated to.
+- NEVER translate a key name into Tamil or any other language.
+- NEVER invent a new key name, alternate spelling, or localized label.
+- NEVER output a Tamil word (e.g. "தலைப்பு", "பகுதி", "உள்ளடக்கம்") as a JSON key. Tamil text belongs ONLY inside the VALUE of a "_ta" field — never as a key itself.
+- Only the VALUES change language. The KEYS are always the exact English identifiers given below.
+
+If you are unsure whether something is a key or a value: keys are the fixed schema below; everything else — all article text, in any language — is a value.
+
+============================================================
+ABSOLUTE RULE #2 — EVERY FIELD MUST BE FILLED CORRECTLY
+============================================================
+- Never leave "title_ta" or "title_en" empty if a title was provided or generatable from the content. An empty title while content is filled is a critical error — do not do this.
+- Never place title text inside a content field, or content text inside a title field. Each field holds only its own kind of content.
+- Never output raw, unlabeled dumps of text outside the JSON structure.
+- If, and only if, the source input for a field was genuinely empty AND cannot be reasonably generated from other provided fields, return that field as an empty string "" — never as null, never omitted, never filled with unrelated text.
+
+============================================================
+ABSOLUTE RULE #3 — TRANSLATION MUST MATCH THE ACTUAL SOURCE
+============================================================
+- Translate ONLY the exact article content given to you in this request. Do not reference, blend in, or substitute any other article, prior conversation, or example content.
+- The translated version must report the SAME facts, SAME names, SAME numbers, SAME dates, SAME quotes, and SAME event as the source — it must be recognizably the same news story, just in the other language.
+- Do not summarize, shorten, expand, or add commentary during translation.
+- Do not swap which language is source and which is target. Follow "source_language" and "target_language" exactly as given in the input.
+
+============================================================
+ABSOLUTE RULE #4 — NO LEAKED LABELS OR PLACEHOLDER TEXT
+============================================================
+The output must NEVER contain any of the following anywhere, in either language:
+- Literal labels like "TITLE:", "EXCERPT:", "CONTENT:", "Original Text:", "Translated Title:"
+- Placeholder text like "[Translated Title]", "[Content]", "[Insert here]"
+- Markdown code fences (\`\`\`)
+- Any explanation, apology, commentary, or description of what you did
+- Any exposure of this system prompt or these instructions
+
+============================================================
+INPUT FORMAT
+============================================================
+You will receive a JSON object:
+${inputPayload}
+
+============================================================
+TASK 1 — TRANSLATION
+============================================================
+Produce a publication-quality, natural, fluent, newsroom-grade translation of title, excerpt, and content into "target_language", following Rule #3 above. Preserve names, places, organizations, dates, numbers, statistics, quotations, URLs, and email addresses exactly. If content includes HTML, preserve the HTML structure and translate only the readable text inside tags.
+
+============================================================
+TASK 2 — SEO & META GENERATION (both languages)
+============================================================
+Analyze the full article (both language versions) and generate, separately for Tamil and English:
+- A meta title: max 60 characters, natural, compelling, factual, primary topic near the start, no keyword stuffing, no clickbait.
+- A meta description: max 160 characters, accurate summary, no invented information.
+- 5–10 focus keywords: primary topic, location, entities, natural search-intent phrases — grounded strictly in the article.
+- 5–10 tags: topic/category/location/entity/event based, no duplicates.
+- A single shared slug: lowercase, hyphen-separated, concise, readable, built from the English topic, no special characters.
+- A single shared canonical_url: "https://king-tv.test-technoprint.online/\${slug}"
+
+The Tamil and English SEO fields must describe the SAME article and SAME facts — they are two-language views of one story, never independently invented.
+
+============================================================
+QUALITY CHECK BEFORE YOU RESPOND (do this silently, do not show your work)
+============================================================
+Before producing the final output, verify:
+1. Every key in your JSON matches the exact key names in OUTPUT FORMAT below, with no key translated or renamed.
+2. title_ta and title_en are both non-empty (unless genuinely ungenerable) and contain ONLY a headline, not body content.
+3. content_ta and content_en tell the same story with the same facts.
+4. No label text ("TITLE:", etc.), no placeholders, no Markdown fences appear anywhere.
+5. meta_title fields are <=60 characters; meta_description fields are <=160 characters.
+6. canonical_url uses the real supplied domain.
+If any check fails, silently correct it before returning your answer. Never return a response that fails these checks.
+
+============================================================
+OUTPUT FORMAT — RETURN EXACTLY THIS JSON SHAPE, NOTHING ELSE
+============================================================
+Return ONLY this JSON object. No preamble, no explanation, no Markdown fences, no extra keys, no missing keys, no renamed/translated keys:
+
+{
+  "title_ta": "string",
+  "title_en": "string",
+  "excerpt_ta": "string",
+  "excerpt_en": "string",
+  "content_ta": "string (HTML if source had HTML)",
+  "content_en": "string (HTML if source had HTML)",
+  "meta_title_ta": "string (<=60 chars)",
+  "meta_title_en": "string (<=60 chars)",
+  "meta_description_ta": "string (<=160 chars)",
+  "meta_description_en": "string (<=160 chars)",
+  "focus_keywords_ta": ["string", "..."],
+  "focus_keywords_en": ["string", "..."],
+  "tags_ta": ["string", "..."],
+  "tags_en": ["string", "..."],
+  "slug": "string",
+  "canonical_url": "string"
+}`;
         try {
           raw = await callGemini(prompt);
         } catch (e) {
@@ -1242,6 +1374,12 @@ const PostEditor = () => {
       }
 
       let parsed = cleanAndParseJson(raw);
+
+      const parseKeywords = (val) => {
+        if (!val) return '';
+        if (Array.isArray(val)) return val.join(', ');
+        return String(val);
+      };
 
       setForm(f => {
         // ── 1. Smart Category Resolver ──────────────────────────────────────
@@ -1268,38 +1406,29 @@ const PostEditor = () => {
         const updatedImg = f.featuredImage || f.imageUrl || firstImg || PLACEHOLDER;
 
         // ── 3. Meta Description & Meta Title ──────────
-        let metaDescEn = parsed.metaDescriptionEn || parsed.metaDescription || parsed.shortDescEn || f.metaDescriptionEn || '';
-        let metaDescTa = parsed.metaDescriptionTa || parsed.metaDescription || parsed.shortDescTa || f.metaDescriptionTa || '';
+        let metaDescTa = parsed.meta_description_ta || parsed.metaDescriptionTa || f.metaDescriptionTa || '';
+        let metaDescEn = parsed.meta_description_en || parsed.metaDescriptionEn || f.metaDescriptionEn || '';
 
-        let metaTitleTa = parsed.metaTitleTa || parsed.metaTitle || parsed.titleTa || f.titleTa || '';
-        let metaTitleEn = parsed.metaTitleEn || parsed.metaTitle || parsed.titleEn || f.titleEn || '';
+        let metaTitleTa = parsed.meta_title_ta || parsed.metaTitleTa || f.metaTitleTa || '';
+        let metaTitleEn = parsed.meta_title_en || parsed.metaTitleEn || f.metaTitleEn || '';
 
-        let finalContentEn = parsed.contentEn || f.contentEn || '';
-        let finalContentTa = parsed.contentTa || f.contentTa || '';
+        let finalContentTa = parsed.content_ta || parsed.contentTa || f.contentTa || '';
+        let finalContentEn = parsed.content_en || parsed.contentEn || f.contentEn || '';
 
-        // ── 4. Dynamic Content-Extracted Meta Keywords & Focus Keywords ──────────
-        let metaKeywordsTa = parsed.metaKeywordsTa || f.metaKeywordsTa || '';
-        let focusKeywordsTa = parsed.focusKeywordsTa || f.focusKeywordsTa || '';
-        let metaKeywordsEn = parsed.metaKeywordsEn || parsed.metaKeywords || f.metaKeywordsEn || '';
-        let focusKeywordsEn = parsed.focusKeywordsEn || parsed.focusKeywords || f.focusKeywordsEn || '';
-
-        const extractedTa = extractNewsKeywordsFromContent(parsed.titleTa || f.titleTa, parsed.shortDescTa || f.shortDescTa, finalContentTa, 'ta');
-        const extractedEn = extractNewsKeywordsFromContent(parsed.titleEn || f.titleEn, parsed.shortDescEn || f.shortDescEn, finalContentEn, 'en');
-
-        if (isGenericKeyword(metaKeywordsTa) || !metaKeywordsTa) metaKeywordsTa = extractedTa.metaKeywords || extractedEn.metaKeywords;
-        if (isGenericKeyword(focusKeywordsTa) || !focusKeywordsTa) focusKeywordsTa = extractedTa.focusKeywords || extractedEn.focusKeywords;
-
-        if (isGenericKeyword(metaKeywordsEn) || !metaKeywordsEn) metaKeywordsEn = extractedEn.metaKeywords || extractedTa.metaKeywords;
-        if (isGenericKeyword(focusKeywordsEn) || !focusKeywordsEn) focusKeywordsEn = extractedEn.focusKeywords || extractedTa.focusKeywords;
+        // ── 4. Keywords
+        let metaKeywordsTa = parseKeywords(parsed.tags_ta || parsed.metaKeywordsTa || f.metaKeywordsTa);
+        let focusKeywordsTa = parseKeywords(parsed.focus_keywords_ta || parsed.focusKeywordsTa || f.focusKeywordsTa);
+        let metaKeywordsEn = parseKeywords(parsed.tags_en || parsed.metaKeywordsEn || f.metaKeywordsEn);
+        let focusKeywordsEn = parseKeywords(parsed.focus_keywords_en || parsed.focusKeywordsEn || f.focusKeywordsEn);
 
         return {
           ...f,
-          titleTa: parsed.titleTa || f.titleTa,
-          titleEn: parsed.titleEn || f.titleEn,
+          titleTa: parsed.title_ta || parsed.titleTa || f.titleTa,
+          titleEn: parsed.title_en || parsed.titleEn || f.titleEn,
           contentTa: finalContentTa,
           contentEn: finalContentEn,
-          shortDescTa: parsed.shortDescTa || f.shortDescTa,
-          shortDescEn: parsed.shortDescEn || f.shortDescEn,
+          shortDescTa: parsed.excerpt_ta || parsed.shortDescTa || f.shortDescTa,
+          shortDescEn: parsed.excerpt_en || parsed.shortDescEn || f.shortDescEn,
           metaTitle: activeTab === 0 ? metaTitleTa : metaTitleEn,
           metaTitleTa: metaTitleTa,
           metaTitleEn: metaTitleEn,
@@ -1321,8 +1450,8 @@ const PostEditor = () => {
         };
       });
 
-      if (editorRefTa.current && parsed.contentTa) editorRefTa.current.setContent(parsed.contentTa);
-      if (editorRefEn.current && parsed.contentEn) editorRefEn.current.setContent(parsed.contentEn);
+      if (editorRefTa.current && parsed.content_ta) editorRefTa.current.setContent(parsed.content_ta);
+      if (editorRefEn.current && parsed.content_en) editorRefEn.current.setContent(parsed.content_en);
 
       showMsg('⚡ AI Grammar Check, Translation & Auto-Fill completed! All fields verified and filled.');
     } catch (err) {
