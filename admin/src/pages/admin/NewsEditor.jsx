@@ -1466,10 +1466,28 @@ const NewsEditor = () => {
     }
 
     // Strip ALL placeholder / template tags
+  const safeUrlDecode = (str) => {
+    if (!str || typeof str !== 'string') return str || '';
+    let result = str;
+    if (result.includes('%')) {
+      try {
+        if (/%[0-9A-Fa-f]{2}/.test(result)) {
+          result = decodeURIComponent(result);
+          if (/%[0-9A-Fa-f]{2}/.test(result)) {
+            result = decodeURIComponent(result);
+          }
+        }
+      } catch (e) {
+        console.warn('URL decode failed:', e);
+      }
+    }
+    return result;
+  };
+
     const badRegex = /\[Translated Title\]|\[Translated Excerpt\]|\[Translated HTML Paragraphs\]|\[Translated Content\]|English translated headline|English translated summary|English translated HTML content|Tamil translated headline|Tamil translated summary|Tamil translated HTML content|Original Text:|Text to Translate:|Source Content:|TITLE:|EXCERPT:|CONTENT:/gi;
-    title = title.replace(badRegex, '').trim();
-    excerpt = excerpt.replace(badRegex, '').trim();
-    content = content.replace(badRegex, '').trim();
+    title = safeUrlDecode(title).replace(badRegex, '').trim();
+    excerpt = safeUrlDecode(excerpt).replace(badRegex, '').trim();
+    content = safeUrlDecode(content).replace(badRegex, '').trim();
 
     if (content && !content.startsWith('<') && !content.startsWith('&lt;')) {
       content = `<p>${content}</p>`;
@@ -1481,7 +1499,7 @@ const NewsEditor = () => {
   // ── Google GTX Zero-Failure Translation Fallback Engine ───────────────────
   const fetchSingleGoogleGtx = async (plainText, targetLang) => {
     if (!plainText || !plainText.trim()) return '';
-    const clean = plainText.trim();
+    const clean = safeUrlDecode(plainText.trim());
     const maxLen = 1000;
     const chunks = [];
     for (let i = 0; i < clean.length; i += maxLen) {
@@ -1495,16 +1513,16 @@ const NewsEditor = () => {
         const data = await res.json();
         if (data && data[0]) {
           const str = data[0].map(item => (item && item[0]) ? item[0] : '').join('');
-          translatedChunks.push(str || chunk);
+          translatedChunks.push(safeUrlDecode(str || chunk));
         } else {
-          translatedChunks.push(chunk);
+          translatedChunks.push(safeUrlDecode(chunk));
         }
       } catch (err) {
         console.error('Google GTX error:', err);
-        translatedChunks.push(chunk);
+        translatedChunks.push(safeUrlDecode(chunk));
       }
     }
-    return translatedChunks.join(' ');
+    return safeUrlDecode(translatedChunks.join(' '));
   };
 
   const fetchGoogleGtxTranslation = async (text, targetLang) => {
@@ -1662,6 +1680,10 @@ RULES FOR TRANSLATION:
         setIsTranslating(false);
         return;
       }
+
+      newTitle = safeUrlDecode(newTitle);
+      newExcerpt = safeUrlDecode(newExcerpt);
+      newContent = safeUrlDecode(newContent);
 
       if (direction === 'ta2en') {
         setForm(f => ({

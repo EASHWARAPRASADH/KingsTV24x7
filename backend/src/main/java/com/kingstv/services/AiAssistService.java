@@ -78,7 +78,7 @@ public class AiAssistService {
 
     private String cleanTranslationResult(String raw) {
         if (raw == null) return "{\"title\":\"\",\"excerpt\":\"\",\"content\":\"\"}";
-        String cleaned = raw.trim();
+        String cleaned = safeUrlDecode(raw.trim());
         if (cleaned.startsWith("```json")) {
             cleaned = cleaned.substring(7);
         } else if (cleaned.startsWith("```")) {
@@ -87,7 +87,7 @@ public class AiAssistService {
         if (cleaned.endsWith("```")) {
             cleaned = cleaned.substring(0, cleaned.length() - 3);
         }
-        return cleaned.trim();
+        return safeUrlDecode(cleaned.trim());
     }
 
     private String buildFallbackAssistResult(String action, String text, String context) {
@@ -153,16 +153,17 @@ public class AiAssistService {
             String gtxExcerpt = translateViaGoogleGtx(excerpt, targetLang);
             String gtxBody = translateViaGoogleGtx(body, targetLang);
 
-            if (gtxTitle != null && !gtxTitle.isBlank()) title = gtxTitle;
-            else if (targetLang.equals("en")) title = translateTaToEnFallback(title);
+            if (gtxTitle != null && !gtxTitle.isBlank()) title = safeUrlDecode(gtxTitle);
+            else if (targetLang.equals("en")) title = safeUrlDecode(translateTaToEnFallback(title));
 
-            if (gtxExcerpt != null && !gtxExcerpt.isBlank()) excerpt = gtxExcerpt;
-            else if (targetLang.equals("en")) excerpt = translateTaToEnFallback(excerpt);
+            if (gtxExcerpt != null && !gtxExcerpt.isBlank()) excerpt = safeUrlDecode(gtxExcerpt);
+            else if (targetLang.equals("en")) excerpt = safeUrlDecode(translateTaToEnFallback(excerpt));
 
             if (gtxBody != null && !gtxBody.isBlank()) {
-                body = (gtxBody.startsWith("<p>") || gtxBody.startsWith("<")) ? gtxBody : "<p>" + gtxBody + "</p>";
+                body = safeUrlDecode(gtxBody);
+                body = (body.startsWith("<p>") || body.startsWith("<")) ? body : "<p>" + body + "</p>";
             } else if (targetLang.equals("en")) {
-                body = translateTaToEnFallback(body);
+                body = safeUrlDecode(translateTaToEnFallback(body));
             }
 
             try {
@@ -451,15 +452,42 @@ public class AiAssistService {
         };
     }
 
+    private String safeUrlDecode(String str) {
+        if (str == null || str.isBlank()) return "";
+        String result = str;
+        if (result.contains("%")) {
+            try {
+                if (result.matches(".*%[0-9A-Fa-f]{2}.*")) {
+                    result = java.net.URLDecoder.decode(result, java.nio.charset.StandardCharsets.UTF_8);
+                    if (result.matches(".*%[0-9A-Fa-f]{2}.*")) {
+                        result = java.net.URLDecoder.decode(result, java.nio.charset.StandardCharsets.UTF_8);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return result;
+    }
+
     private String translateViaGoogleGtx(String text, String targetLang) {
         if (text == null || text.isBlank()) return "";
         try {
             String clean = text.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
             if (clean.isBlank()) return "";
+            clean = safeUrlDecode(clean);
             if (clean.length() > 1000) clean = clean.substring(0, 1000);
-            String url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" + targetLang + "&dt=t&q=" + java.net.URLEncoder.encode(clean, java.nio.charset.StandardCharsets.UTF_8);
+
+            java.net.URI uri = org.springframework.web.util.UriComponentsBuilder
+                    .fromHttpUrl("https://translate.googleapis.com/translate_a/single")
+                    .queryParam("client", "gtx")
+                    .queryParam("sl", "auto")
+                    .queryParam("tl", targetLang)
+                    .queryParam("dt", "t")
+                    .queryParam("q", clean)
+                    .build()
+                    .toUri();
+
             org.springframework.web.client.RestTemplate rt = new org.springframework.web.client.RestTemplate();
-            List<?> res = rt.getForObject(url, List.class);
+            List<?> res = rt.getForObject(uri, List.class);
             if (res != null && !res.isEmpty() && res.get(0) instanceof List) {
                 List<?> sentences = (List<?>) res.get(0);
                 StringBuilder sb = new StringBuilder();
@@ -469,12 +497,13 @@ public class AiAssistService {
                         if (first != null) sb.append(first.toString());
                     }
                 }
-                return sb.toString().trim();
+                String translated = sb.toString().trim();
+                return safeUrlDecode(translated);
             }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(AiAssistService.class).warn("Backend Google GTX fallback error:", e);
         }
-        return "";
+        return safeUrlDecode(text);
     }
 
 }
