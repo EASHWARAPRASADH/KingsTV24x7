@@ -72,8 +72,7 @@ public class AiAssistService {
             org.slf4j.LoggerFactory.getLogger(AiAssistService.class).warn("LLM Provider assist call failed, serving smart fallback text:", e);
         }
 
-        // Smart Fallback for assist action
-        String fallbackResult = buildFallbackAssistResult(action, text);
+        String fallbackResult = buildFallbackAssistResult(action, text, context);
         return Map.of("error", false, "isFallback", true, "result", fallbackResult, "action", action);
     }
 
@@ -91,7 +90,7 @@ public class AiAssistService {
         return cleaned.trim();
     }
 
-    private String buildFallbackAssistResult(String action, String text) {
+    private String buildFallbackAssistResult(String action, String text, String context) {
         if (text == null) text = "";
         String clean = text.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
         
@@ -146,10 +145,25 @@ public class AiAssistService {
             String badRegex = "\\[Translated Title\\]|\\[Translated Excerpt\\]|\\[Translated HTML Paragraphs\\]|\\[Translated Content\\]|Original Text:|TITLE:|EXCERPT:|CONTENT:";
             title = title.replaceAll(badRegex, "").trim();
             excerpt = excerpt.replaceAll(badRegex, "").trim();
-            // Translate Tamil words to English if fallback triggered for ta2en
-            title = translateTaToEnFallback(title);
-            excerpt = translateTaToEnFallback(excerpt);
-            body = translateTaToEnFallback(body);
+
+            String targetLang = (context != null && context.equalsIgnoreCase("en2ta")) ? "ta" : "en";
+            
+            // Try Google Translate GTX fallback
+            String gtxTitle = translateViaGoogleGtx(title, targetLang);
+            String gtxExcerpt = translateViaGoogleGtx(excerpt, targetLang);
+            String gtxBody = translateViaGoogleGtx(body, targetLang);
+
+            if (gtxTitle != null && !gtxTitle.isBlank()) title = gtxTitle;
+            else if (targetLang.equals("en")) title = translateTaToEnFallback(title);
+
+            if (gtxExcerpt != null && !gtxExcerpt.isBlank()) excerpt = gtxExcerpt;
+            else if (targetLang.equals("en")) excerpt = translateTaToEnFallback(excerpt);
+
+            if (gtxBody != null && !gtxBody.isBlank()) {
+                body = (gtxBody.startsWith("<p>") || gtxBody.startsWith("<")) ? gtxBody : "<p>" + gtxBody + "</p>";
+            } else if (targetLang.equals("en")) {
+                body = translateTaToEnFallback(body);
+            }
 
             try {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -449,5 +463,31 @@ public class AiAssistService {
         };
     }
 
+    private String translateViaGoogleGtx(String text, String targetLang) {
+        if (text == null || text.isBlank()) return "";
+        try {
+            String clean = text.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+            if (clean.isBlank()) return "";
+            if (clean.length() > 1000) clean = clean.substring(0, 1000);
+            String url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" + targetLang + "&dt=t&q=" + java.net.URLEncoder.encode(clean, java.nio.charset.StandardCharsets.UTF_8);
+            org.springframework.web.client.RestTemplate rt = new org.springframework.web.client.RestTemplate();
+            List<?> res = rt.getForObject(url, List.class);
+            if (res != null && !res.isEmpty() && res.get(0) instanceof List) {
+                List<?> sentences = (List<?>) res.get(0);
+                StringBuilder sb = new StringBuilder();
+                for (Object s : sentences) {
+                    if (s instanceof List && !((List<?>) s).isEmpty()) {
+                        Object first = ((List<?>) s).get(0);
+                        if (first != null) sb.append(first.toString());
+                    }
+                }
+                return sb.toString().trim();
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AiAssistService.class).warn("Backend Google GTX fallback error:", e);
+        }
+        return "";
+    }
 
 }
+

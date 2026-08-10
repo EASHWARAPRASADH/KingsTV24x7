@@ -1391,29 +1391,91 @@ const NewsEditor = () => {
     return { title, excerpt, content };
   };
 
-  // ── MyMemory Zero-Failure Translation Fallback ─────────────────────────────
-  const fetchMyMemoryTranslation = async (text, direction) => {
-    if (!text || text.trim().length === 0) return '';
-    const langpair = direction === 'ta2en' ? 'ta|en' : 'en|ta';
-    const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    if (!cleanText) return '';
-    try {
-      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText.substring(0, 500))}&langpair=${langpair}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data && data.responseData && data.responseData.translatedText) {
-        return data.responseData.translatedText;
-      }
-    } catch (err) {
-      console.error('MyMemory API error:', err);
+  // ── Google GTX Zero-Failure Translation Fallback Engine ───────────────────
+  const fetchSingleGoogleGtx = async (plainText, targetLang) => {
+    if (!plainText || !plainText.trim()) return '';
+    const clean = plainText.trim();
+    const maxLen = 1000;
+    const chunks = [];
+    for (let i = 0; i < clean.length; i += maxLen) {
+      chunks.push(clean.substring(i, i + maxLen));
     }
-    return '';
+    const translatedChunks = [];
+    for (const chunk of chunks) {
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(chunk)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data && data[0]) {
+          const str = data[0].map(item => (item && item[0]) ? item[0] : '').join('');
+          translatedChunks.push(str || chunk);
+        } else {
+          translatedChunks.push(chunk);
+        }
+      } catch (err) {
+        console.error('Google GTX error:', err);
+        translatedChunks.push(chunk);
+      }
+    }
+    return translatedChunks.join(' ');
+  };
+
+  const fetchGoogleGtxTranslation = async (text, targetLang) => {
+    if (!text || !text.trim()) return '';
+    const raw = text.trim();
+
+    if (raw.includes('<p>') || raw.includes('<P>') || raw.includes('<div') || raw.includes('<li')) {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(raw, 'text/html');
+        const elements = Array.from(doc.querySelectorAll('p, div, li, h1, h2, h3, h4, h5, h6'));
+        if (elements.length > 0) {
+          for (const el of elements) {
+            const txt = el.innerText.trim();
+            if (txt) {
+              const trans = await fetchSingleGoogleGtx(txt, targetLang);
+              if (trans) el.innerText = trans;
+            }
+          }
+          return doc.body.innerHTML;
+        }
+      } catch (e) {
+        console.warn('HTML translation fallback warning:', e);
+      }
+    }
+
+    const plain = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const trans = await fetchSingleGoogleGtx(plain, targetLang);
+    return trans ? `<p>${trans}</p>` : raw;
+  };
+
+  const validateTargetLanguage = (title, excerpt, content, targetLang) => {
+    const plainTitle = (title || '').replace(/<[^>]*>/g, '').trim();
+    const plainExcerpt = (excerpt || '').replace(/<[^>]*>/g, '').trim();
+    const plainContent = (content || '').replace(/<[^>]*>/g, '').trim();
+    const combined = (plainTitle + ' ' + plainExcerpt + ' ' + plainContent).replace(/[0-9\s\p{P}\p{S}]/gu, '');
+
+    if (!combined || combined.length < 2) return false;
+
+    if (targetLang === 'en') {
+      const hasTamil = /[\u0B80-\u0BFF]/.test(combined);
+      const hasEnglish = /[a-zA-Z]{2,}/.test(combined);
+      const isNotPlaceholder = !plainTitle.toLowerCase().includes('english translated') && 
+                               !plainContent.toLowerCase().includes('english translated');
+      return !hasTamil && hasEnglish && isNotPlaceholder;
+    } else {
+      const hasTamil = /[\u0B80-\u0BFF]/.test(combined);
+      const isNotPlaceholder = !plainTitle.toLowerCase().includes('tamil translated') && 
+                               !plainContent.toLowerCase().includes('tamil translated');
+      return hasTamil && isNotPlaceholder;
+    }
   };
 
   // ── Auto Translate Title, Excerpt, Content ─────────────────────────────────
   const handleAutoTranslate = async (direction) => {
     setIsTranslating(true);
-    showMsg(`⚡ Translating content to ${direction === 'ta2en' ? 'English' : 'Tamil'}...`);
+    const targetLang = direction === 'ta2en' ? 'en' : 'ta';
+    showMsg(`⚡ Translating content to ${targetLang === 'en' ? 'English' : 'Tamil'}...`);
     try {
       const sourceTitle = direction === 'ta2en' ? form.titleTa : form.titleEn;
       const sourceExcerpt = direction === 'ta2en' ? form.shortDescTa : form.shortDescEn;
@@ -1482,30 +1544,26 @@ RULES FOR TRANSLATION:
       let { title: newTitle, excerpt: newExcerpt, content: newContent } = cleanAndExtractTranslation(rawResponse);
 
       // ── Target Language Validation & Zero-Failure Fallback Guard ──────────
-      let isValidTargetLang = false;
-      if (direction === 'ta2en') {
-        const hasEnglish = /[a-zA-Z]{3,}/.test((newTitle || '') + ' ' + (newContent || ''));
-        const isNotPlaceholder = !newTitle.toLowerCase().includes('english translated') && !newContent.toLowerCase().includes('english translated');
-        isValidTargetLang = hasEnglish && isNotPlaceholder;
-      } else {
-        const hasTamil = /[\u0B80-\u0BFF]/.test((newTitle || '') + ' ' + (newContent || ''));
-        const isNotPlaceholder = !newTitle.toLowerCase().includes('tamil translated') && !newContent.toLowerCase().includes('tamil translated');
-        isValidTargetLang = hasTamil && isNotPlaceholder;
-      }
+      let isValidTargetLang = validateTargetLanguage(newTitle, newExcerpt, newContent, targetLang);
 
-      // If translation failed, returned non-target language text, or returned placeholder text: run MyMemory API
+      // If translation failed, returned non-target language text, or returned placeholder text: run Google Translate GTX
       if (!isValidTargetLang || !newTitle || newTitle.trim().length === 0) {
-        console.warn(`Translation output invalid for ${direction}. Running MyMemory translation fallback...`);
+        console.warn(`Translation output invalid for ${direction}. Executing Google Translate GTX fallback...`);
         try {
-          const fallbackTitle = await fetchMyMemoryTranslation(sourceTitle, direction);
-          const fallbackExcerpt = await fetchMyMemoryTranslation(sourceExcerpt || sourceContent, direction);
-          const fallbackContent = await fetchMyMemoryTranslation(sourceContent, direction);
-
-          if (fallbackTitle) newTitle = fallbackTitle;
-          if (fallbackExcerpt) newExcerpt = fallbackExcerpt;
-          if (fallbackContent) newContent = `<p>${fallbackContent}</p>`;
-        } catch (mmErr) {
-          console.error('MyMemory fallback failed:', mmErr);
+          if (sourceTitle && sourceTitle.trim()) {
+            newTitle = await fetchSingleGoogleGtx(sourceTitle, targetLang);
+          }
+          if (sourceExcerpt && sourceExcerpt.trim()) {
+            newExcerpt = await fetchSingleGoogleGtx(sourceExcerpt, targetLang);
+          } else if (sourceContent && sourceContent.trim()) {
+            const tempEx = await fetchSingleGoogleGtx(sourceContent, targetLang);
+            newExcerpt = tempEx.length > 180 ? tempEx.substring(0, 180) + '...' : tempEx;
+          }
+          if (sourceContent && sourceContent.trim()) {
+            newContent = await fetchGoogleGtxTranslation(sourceContent, targetLang);
+          }
+        } catch (gtxErr) {
+          console.error('Google GTX fallback failed:', gtxErr);
         }
       }
 
@@ -1530,6 +1588,7 @@ RULES FOR TRANSLATION:
         if (editorRefEn.current && newContent) {
           editorRefEn.current.setContent(newContent);
         }
+        setActiveTab(1);
       } else {
         setForm(f => ({
           ...f,
@@ -1542,6 +1601,7 @@ RULES FOR TRANSLATION:
         if (editorRefTa.current && newContent) {
           editorRefTa.current.setContent(newContent);
         }
+        setActiveTab(0);
       }
 
       showMsg(`✅ Content translated successfully to ${direction === 'ta2en' ? 'English' : 'Tamil'}!`);
