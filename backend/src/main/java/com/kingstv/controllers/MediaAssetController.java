@@ -53,7 +53,7 @@ public class MediaAssetController {
 
     @PostMapping("/upload")
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.SUB_EDITOR, Role.SECTION_EDITOR, Role.DISTRICT_ADMIN, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
-    public ResponseEntity<?> uploadMedia(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadMedia(@RequestParam("file") MultipartFile file, @RequestParam(value = "folderName", required = false) String folderName) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "File is empty"));
         }
@@ -66,6 +66,9 @@ public class MediaAssetController {
             asset.setUrl(url);
             asset.setMimeType(file.getContentType());
             asset.setFileSize(file.getSize());
+            if (folderName != null && !folderName.isBlank()) {
+                asset.setFolderName(folderName.trim());
+            }
             
             // Determine category
             String contentType = file.getContentType() != null ? file.getContentType().toLowerCase() : "";
@@ -113,22 +116,23 @@ public class MediaAssetController {
     @PutMapping("/{id}")
     @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.SUB_EDITOR, Role.SECTION_EDITOR, Role.DISTRICT_ADMIN, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     public ResponseEntity<?> updateMediaFilename(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        String newName = body.get("name");
-        if (newName == null || newName.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "New filename is required"));
-        }
         Optional<MediaAsset> opt = mediaAssetRepository.findById(id);
         if (opt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Media not found"));
         }
         MediaAsset asset = opt.get();
-        asset.setFilename(newName.trim());
+        if (body.containsKey("name") && body.get("name") != null && !body.get("name").trim().isEmpty()) {
+            asset.setFilename(body.get("name").trim());
+        }
+        if (body.containsKey("folderName")) {
+            asset.setFolderName(body.get("folderName"));
+        }
         MediaAsset updated = mediaAssetRepository.save(asset);
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR})
+    @RequiresPermission(anyOf = {Role.SUPER_ADMIN, Role.CHIEF_EDITOR, Role.SUB_EDITOR, Role.SECTION_EDITOR, Role.DISTRICT_ADMIN, Role.MOBILE_JOURNALIST, Role.INSTITUTION_LOGIN})
     public ResponseEntity<?> deleteMedia(@PathVariable Long id) {
         Optional<MediaAsset> opt = mediaAssetRepository.findById(id);
         if (opt.isEmpty()) {
