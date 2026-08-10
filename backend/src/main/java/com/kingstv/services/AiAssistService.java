@@ -316,20 +316,22 @@ public class AiAssistService {
             case "translate" -> {
                 String direction = context != null && context.equalsIgnoreCase("en2ta") ? "English to Tamil" : "Tamil to English";
                 yield """
-                        You are a chief news editor and professional translator for KINGS 24x7 news channel.
-                        Translate the following content accurately from %s.
+                        You are the Chief Tamil & English News Editor for KINGS 24x7 News Channel.
+                        Translate the following content accurately from %s into publication-ready news language.
                         
-                        RULES FOR TRANSLATION:
-                        1. JOURNALISTIC REGISTER: Use formal, natural, published news language (இலக்கணப்படி அமைந்த செய்தித் தமிழ் for Tamil, AP news style for English). Avoid direct word-for-word machine translation mistakes.
-                        2. PROPER NAMES & LOCATIONS: Transliterate place names, politician/celebrity names, and official terms accurately (e.g., Chennai, Tamil Nadu, Chief Minister, High Court).
-                        3. HTML TAGS: Preserve all HTML tags like <p>, <strong>, <em>, <ul>, <ol>, <li>, <br> without altering tag structure. Translate text inside HTML without destroying HTML tags.
+                        CRITICAL TRANSLATION RULES:
+                        1. JOURNALISTIC REGISTER & NEWS TERMINOLOGY: Use formal, natural, published news media language (முறையான செய்தி ஊடக தமிழ் நடை). Avoid word-for-word robotic translations.
+                           - Translate terms into natural Tamil news media words (e.g. Chief Minister -> முதலமைச்சர், High Court -> உயர்நீதிமன்றம், Announcement -> அறிவிப்பு, Alert -> எச்சரிக்கை, Police -> காவல்துறை, Prime Minister -> பிரதமர்).
+                           - Structure Tamil sentences naturally (SOV format) ending with proper news verbs (e.g., "எனத் தெரிவித்துள்ளார்", "என்று கூறினார்", "நடவடிக்கை எடுக்கப்பட்டுள்ளது").
+                        2. PROPER NAMES & LOCATIONS: Accurately transliterate names of persons, cities, states, and institutions into Tamil script (e.g., Chennai -> சென்னை, Tamil Nadu -> தமிழ்நாடு, Stalin -> ஸ்டாலின், Modi -> மோடி).
+                        3. HTML STRUCTURE: Preserve all HTML tags (<p>, <strong>, <em>, <ul>, <ol>, <li>, <br>, <a>, <img>, <iframe>, <video>) without destroying tag structure.
                         4. OUTPUT FORMAT: Respond ONLY with a valid JSON object matching this exact schema:
                         {
-                          "title": "actual translated title",
-                          "excerpt": "actual translated excerpt",
-                          "content": "<p>actual translated content with HTML tags</p>"
+                          "title": "translated title in proper news Tamil",
+                          "excerpt": "translated summary in proper news Tamil",
+                          "content": "<p>translated HTML content in proper news Tamil</p>"
                         }
-                        5. STRICT RULES ON OUTPUT: Do NOT include markdown code blocks like ```json, do NOT include template placeholders like [Translated Excerpt], [Translated HTML Paragraphs], Original Text:, TITLE:, EXCERPT:, or CONTENT:. Return ONLY the JSON object.
+                        5. STRICT RULES ON OUTPUT: Do NOT include markdown code blocks like ```json, template placeholders, or labels. Return ONLY the JSON object.
                         
                         Source Content to Translate:
                         %s

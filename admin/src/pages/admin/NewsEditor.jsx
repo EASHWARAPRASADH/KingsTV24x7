@@ -30,14 +30,13 @@ const callGemini = async (prompt, action = 'assist') => {
 const safeUrlDecode = (str) => {
   if (!str || typeof str !== 'string') return str || '';
   let result = str;
-  if (result.includes('%')) {
+  // If string already contains Tamil characters, return directly without running decodeURIComponent
+  if (/[\u0B80-\u0BFF]/.test(result)) {
+    return result;
+  }
+  if (/%[0-9A-Fa-f]{2}/.test(result)) {
     try {
-      if (/%[0-9A-Fa-f]{2}/.test(result)) {
-        result = decodeURIComponent(result);
-        if (/%[0-9A-Fa-f]{2}/.test(result)) {
-          result = decodeURIComponent(result);
-        }
-      }
+      result = decodeURIComponent(result);
     } catch (e) {
       console.warn('URL decode failed:', e);
     }
@@ -241,7 +240,43 @@ const NewsEditor = () => {
   
   const [saving, setSaving] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [autoTranslateActive, setAutoTranslateActive] = useState(true);
   const [msg, setMsg] = useState(null);
+
+  const [form, setForm] = useState({
+    titleTa: '', titleEn: '', contentTa: '', contentEn: '',
+    shortDescTa: '', shortDescEn: '', imageUrl: '', featuredImage: '',
+    authorName: user?.name || user?.username || 'Kings TV News Desk', 
+    reporterName: '', readabilityScore: '', seoScore: '', status: 'draft',
+    categoryId: '', subcategoryId: '', districtId: '', constituency: '',
+    metaTitle: '', metaDescription: '', metaKeywords: '', focusKeywords: '', slug: '', canonicalUrl: '',
+    publishedAt: '', showRightColumn: true, isPluggedIn: false, featuredCategory: '',
+    allowComments: true, allowPingbacks: true
+  });
+
+  // ── Automatic Dual-Direction Background Translation Listener ───────────────
+  useEffect(() => {
+    if (!autoTranslateActive || isTranslating || isEdit) return;
+
+    const timer = setTimeout(() => {
+      const getPlain = (s) => (s || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
+      const pTaTitle = getPlain(form.titleTa);
+      const pEnTitle = getPlain(form.titleEn);
+      const pTaContent = getPlain(form.contentTa);
+      const pEnContent = getPlain(form.contentEn);
+
+      // Auto-translate Tamil to English when Tamil content is entered but English is empty
+      if ((pTaTitle.length >= 3 || pTaContent.length >= 10) && pEnTitle.length === 0 && pEnContent.length === 0) {
+        handleAutoTranslate('ta2en');
+      }
+      // Auto-translate English to Tamil when English content is entered but Tamil is empty
+      else if ((pEnTitle.length >= 3 || pEnContent.length >= 10) && pTaTitle.length === 0 && pTaContent.length === 0) {
+        handleAutoTranslate('en2ta');
+      }
+    }, 2200);
+
+    return () => clearTimeout(timer);
+  }, [form.titleTa, form.titleEn, form.contentTa, form.contentEn, autoTranslateActive, isTranslating, isEdit]);
   
   // Content Moderation State
   const [profanityDict, setProfanityDict] = useState([]);
@@ -263,17 +298,6 @@ const NewsEditor = () => {
   // Draft Backup & Auto-Save State
   const [hasDraftBackup, setHasDraftBackup] = useState(false);
   const [draftSavedTime, setDraftSavedTime] = useState('');
-  
-  const [form, setForm] = useState({
-    titleTa: '', titleEn: '', contentTa: '', contentEn: '',
-    shortDescTa: '', shortDescEn: '', imageUrl: '', featuredImage: '',
-    authorName: user?.name || user?.username || 'Kings TV News Desk', 
-    reporterName: '', readabilityScore: '', seoScore: '', status: 'draft',
-    categoryId: '', subcategoryId: '', districtId: '', constituency: '',
-    metaTitle: '', metaDescription: '', metaKeywords: '', focusKeywords: '', slug: '', canonicalUrl: '',
-    publishedAt: '', showRightColumn: true, isPluggedIn: false, featuredCategory: '',
-    allowComments: true, allowPingbacks: true
-  });
 
   // ── Auto-Save to LocalStorage every 15s ────────────────────────────────────
   useEffect(() => {
@@ -1534,6 +1558,49 @@ Return ONLY this JSON object. No preamble, no explanation, no Markdown fences, n
     }
   };
 
+  // ── News Media Terminology & Phrase Refiner (Dual-Direction) ─────────────────
+  const refineNewsTranslation = (text, targetLang) => {
+    if (!text || typeof text !== 'string') return text || '';
+    let result = text;
+
+    if (targetLang === 'ta') {
+      // English -> Proper Tamil News Terms
+      const taReplacements = [
+        [/சீஃப் மினிஸ்டர்|முதல்வர்(?!\S)/g, 'முதலமைச்சர்'],
+        [/பிரைம் மினிஸ்டர்|பிரதம மந்திரி/g, 'பிரதமர்'],
+        [/உயர் நீதிமன்றம்|உயர்நீதி மன்றம்/g, 'உயர்நீதிமன்றம்'],
+        [/உச்ச நீதிமன்றம்|உச்சநீதி மன்றம்/g, 'உச்சநீதிமன்றம்'],
+        [/காவல் துறை|போலீஸ்/g, 'காவல்துறை'],
+        [/மாவட்ட ஆட்சித்தலைவர்|மாவட்ட கலெக்டர்/g, 'மாவட்ட ஆட்சியர்'],
+        [/தமிழ் நாட்டில்/g, 'தமிழ்நாட்டில்'],
+        [/சென்னையில் உள்ள/g, 'சென்னையில்'],
+        [/தெரிவித்துள்ளார் என்று/g, 'தெரிவித்துள்ளார்'],
+        [/செய்தி வெளியிட்டுள்ளார்/g, 'அறிக்கை வெளியிட்டுள்ளார்'],
+        [/அறிவிக்கப்பட்டுள்ளது/g, 'அறிவிப்பு வெளியிடப்பட்டுள்ளது'],
+        [/ஆங்கிலத்தில் மொழிபெயர்க்கப்பட்டது/g, ''],
+        [/தமிழ் செய்தித் தலைப்பு/g, ''],
+        [/\[Translated Title\]|\[Translated Content\]/gi, '']
+      ];
+      for (const [pattern, replacement] of taReplacements) {
+        result = result.replace(pattern, replacement);
+      }
+    } else {
+      // Tamil -> Proper English News Terms
+      const enReplacements = [
+        [/\bChief Minister of Tamil Nadu M\.K\. Stalin said that\b/gi, 'Tamil Nadu Chief Minister M.K. Stalin stated that'],
+        [/\bPolice department has taken action\b/gi, 'Police initiated action'],
+        [/\bHeavy rain alert has been given\b/gi, 'Heavy rainfall warning issued'],
+        [/\bHigh Court ordered that\b/gi, 'The High Court directed'],
+        [/\[Translated Title\]|\[Translated Content\]|Tamil translated/gi, '']
+      ];
+      for (const [pattern, replacement] of enReplacements) {
+        result = result.replace(pattern, replacement);
+      }
+    }
+
+    return result.trim();
+  };
+
   // ── Helper to Clean and Extract Translation Fields ─────────────────────────
   const cleanAndExtractTranslation = (rawText) => {
     let title = '';
@@ -1544,74 +1611,90 @@ Return ONLY this JSON object. No preamble, no explanation, no Markdown fences, n
 
     let clean = String(rawText).trim();
 
-    // Strip markdown code blocks ```json ... ```
-    if (clean.startsWith('```json')) {
-      clean = clean.substring(7);
-    } else if (clean.startsWith('```')) {
-      clean = clean.substring(3);
-    }
-    if (clean.endsWith('```')) {
-      clean = clean.substring(0, clean.length - 3);
-    }
-    clean = clean.trim();
+    // Helper to recursively parse stringified JSON
+    const parseNestedJson = (val) => {
+      if (!val) return val;
+      if (typeof val === 'object') return val;
+      if (typeof val === 'string' && val.trim().startsWith('{')) {
+        try {
+          const p = JSON.parse(val.trim());
+          if (p && typeof p === 'object') return parseNestedJson(p);
+        } catch (e) {}
+      }
+      return val;
+    };
 
-    // Try parsing as JSON object
+    // Strip markdown code fences
+    clean = clean.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+    // Extract outermost braces if present
+    const firstBrace = clean.indexOf('{');
+    const lastBrace = clean.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      clean = clean.substring(firstBrace, lastBrace + 1);
+    }
+
     try {
-      const parsed = JSON.parse(clean);
+      let parsed = JSON.parse(clean);
+      parsed = parseNestedJson(parsed);
+
       if (parsed && typeof parsed === 'object') {
         title = parsed.title || parsed.titleEn || parsed.titleTa || '';
         excerpt = parsed.excerpt || parsed.excerptEn || parsed.excerptTa || parsed.shortDescEn || parsed.shortDescTa || '';
         content = parsed.content || parsed.contentEn || parsed.contentTa || '';
+
+        // If any extracted field is itself a nested JSON string, unwrap it
+        if (typeof title === 'string' && title.trim().startsWith('{')) {
+          const tObj = parseNestedJson(title);
+          if (tObj && typeof tObj === 'object') {
+            title = tObj.title || tObj.titleEn || tObj.titleTa || '';
+            if (!excerpt) excerpt = tObj.excerpt || tObj.excerptEn || tObj.excerptTa || '';
+            if (!content) content = tObj.content || tObj.contentEn || tObj.contentTa || '';
+          }
+        }
+        if (typeof excerpt === 'string' && excerpt.trim().startsWith('{')) {
+          const eObj = parseNestedJson(excerpt);
+          if (eObj && typeof eObj === 'object') {
+            excerpt = eObj.excerpt || eObj.title || '';
+          }
+        }
+        if (typeof content === 'string' && content.trim().startsWith('{')) {
+          const cObj = parseNestedJson(content);
+          if (cObj && typeof cObj === 'object') {
+            content = cObj.content || cObj.body || '';
+          }
+        }
       }
     } catch (e) {
-      // Regex JSON extraction fallback
-      const titleMatch = clean.match(/"title"\s*:\s*"([\s\S]*?)"(?=\s*,\s*"excerpt"|\s*,\s*"content"|\s*})/i);
-      const excerptMatch = clean.match(/"excerpt"\s*:\s*"([\s\S]*?)"(?=\s*,\s*"content"|\s*})/i);
-      const contentMatch = clean.match(/"content"\s*:\s*"([\s\S]*?)"(?=\s*})/i);
+      // Regex extraction fallback
+      const titleMatch = clean.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*?)"/i);
+      const excerptMatch = clean.match(/"excerpt"\s*:\s*"((?:[^"\\]|\\.)*?)"/i);
+      const contentMatch = clean.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*?)"/i);
 
       if (titleMatch) title = titleMatch[1];
       if (excerptMatch) excerpt = excerptMatch[1];
       if (contentMatch) content = contentMatch[1];
     }
 
-    // Legacy format fallback (TITLE: ... EXCERPT: ... CONTENT: ...)
-    if (!title && !excerpt && !content) {
-      const tMatch = clean.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|\n\nCONTENT:|$)/i);
-      const eMatch = clean.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
-      const cMatch = clean.match(/CONTENT:\s*([\s\S]*)$/i);
+    // Convert fields to string
+    title = typeof title === 'string' ? title : String(title || '');
+    excerpt = typeof excerpt === 'string' ? excerpt : String(excerpt || '');
+    content = typeof content === 'string' ? content : String(content || '');
 
-      if (tMatch) title = tMatch[1];
-      if (eMatch) excerpt = eMatch[1];
-      if (cMatch) content = cMatch[1];
-
-      if (!title && !excerpt && !content) {
-        content = clean;
-      }
+    // Safety guard: if title or content still contains raw JSON string structure, extract value
+    if (title.trim().startsWith('{')) {
+      const match = title.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*?)"/i) || title.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*?)"/i);
+      title = match ? match[1] : title.replace(/^\{.*?"title"\s*:\s*"/i, '').replace(/"\s*\}$/, '');
     }
-
-    // Strip ALL placeholder / template tags
-  const safeUrlDecode = (str) => {
-    if (!str || typeof str !== 'string') return str || '';
-    let result = str;
-    if (result.includes('%')) {
-      try {
-        if (/%[0-9A-Fa-f]{2}/.test(result)) {
-          result = decodeURIComponent(result);
-          if (/%[0-9A-Fa-f]{2}/.test(result)) {
-            result = decodeURIComponent(result);
-          }
-        }
-      } catch (e) {
-        console.warn('URL decode failed:', e);
-      }
+    if (content.trim().startsWith('{')) {
+      const match = content.match(/"content"\s*:\s*"((?:[^"\\]|\\.)*?)"/i) || content.match(/"title"\s*:\s*"((?:[^"\\]|\\.)*?)"/i);
+      content = match ? match[1] : content.replace(/^\{.*?"content"\s*:\s*"/i, '').replace(/"\s*\}$/, '');
     }
-    return result;
-  };
 
     const badRegex = /\[Translated Title\]|\[Translated Excerpt\]|\[Translated HTML Paragraphs\]|\[Translated Content\]|English translated headline|English translated summary|English translated HTML content|Tamil translated headline|Tamil translated summary|Tamil translated HTML content|Original Text:|Text to Translate:|Source Content:|TITLE:|EXCERPT:|CONTENT:/gi;
-    title = safeUrlDecode(title).replace(badRegex, '').trim();
-    excerpt = safeUrlDecode(excerpt).replace(badRegex, '').trim();
-    content = safeUrlDecode(content).replace(badRegex, '').trim();
+    title = safeUrlDecode(title).replace(badRegex, '').replace(/\\"/g, '"').replace(/\\n/g, '\n').trim();
+    excerpt = safeUrlDecode(excerpt).replace(badRegex, '').replace(/\\"/g, '"').replace(/\\n/g, '\n').trim();
+    content = safeUrlDecode(content).replace(badRegex, '').replace(/\\"/g, '"').replace(/\\n/g, '\n').trim();
 
     if (content && !content.startsWith('<') && !content.startsWith('&lt;')) {
       content = `<p>${content}</p>`;
@@ -1653,23 +1736,30 @@ Return ONLY this JSON object. No preamble, no explanation, no Markdown fences, n
     if (!text || !text.trim()) return '';
     const raw = text.trim();
 
-    if (raw.includes('<p>') || raw.includes('<P>') || raw.includes('<div') || raw.includes('<li')) {
+    if (raw.includes('<p>') || raw.includes('<div') || raw.includes('<li') || raw.includes('<h')) {
       try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(raw, 'text/html');
-        const elements = Array.from(doc.querySelectorAll('p, div, li, h1, h2, h3, h4, h5, h6'));
-        if (elements.length > 0) {
-          for (const el of elements) {
-            const txt = el.innerText.trim();
-            if (txt) {
-              const trans = await fetchSingleGoogleGtx(txt, targetLang);
-              if (trans) el.innerText = trans;
+
+        const translateTextNodes = async (node) => {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const txt = node.nodeValue ? node.nodeValue.trim() : '';
+            if (txt.length > 1 && !/^[0-9\s\p{P}]+$/u.test(txt)) {
+              const translated = await fetchSingleGoogleGtx(txt, targetLang);
+              if (translated) node.nodeValue = translated;
+            }
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (['SCRIPT', 'STYLE', 'CODE', 'PRE'].includes(node.tagName)) return;
+            for (const child of Array.from(node.childNodes)) {
+              await translateTextNodes(child);
             }
           }
-          return doc.body.innerHTML;
-        }
+        };
+
+        await translateTextNodes(doc.body);
+        return doc.body.innerHTML;
       } catch (e) {
-        console.warn('HTML translation fallback warning:', e);
+        console.warn('HTML GTX translation warning:', e);
       }
     }
 
@@ -1708,10 +1798,17 @@ Return ONLY this JSON object. No preamble, no explanation, no Markdown fences, n
     try {
       const sourceTitle = direction === 'ta2en' ? form.titleTa : form.titleEn;
       const sourceExcerpt = direction === 'ta2en' ? form.shortDescTa : form.shortDescEn;
-      const sourceContent = direction === 'ta2en' ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa) : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
+      const rawContent = direction === 'ta2en'
+        ? (editorRefTa.current ? editorRefTa.current.getContent() : form.contentTa)
+        : (editorRefEn.current ? editorRefEn.current.getContent() : form.contentEn);
 
-      if ((!sourceTitle || sourceTitle.length < 2) && (!sourceExcerpt || sourceExcerpt.length < 2) && (!sourceContent || sourceContent.length < 5)) {
-        showMsg('Please write some content to translate first.', true);
+      const getPlainText = (str) => (str || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim();
+      const plainTitle = getPlainText(sourceTitle);
+      const plainExcerpt = getPlainText(sourceExcerpt);
+      const plainContent = getPlainText(rawContent);
+
+      if (plainTitle.length < 2 && plainExcerpt.length < 2 && plainContent.length < 3) {
+        showMsg(`Please enter some ${direction === 'ta2en' ? 'Tamil' : 'English'} Title or Content to translate.`, true);
         setIsTranslating(false);
         return;
       }
@@ -1719,7 +1816,7 @@ Return ONLY this JSON object. No preamble, no explanation, no Markdown fences, n
       const inputPayload = JSON.stringify({
         title: sourceTitle || '',
         excerpt: sourceExcerpt || '',
-        content: sourceContent || ''
+        content: rawContent || ''
       });
 
       let rawResponse = '';
@@ -1745,23 +1842,30 @@ Return ONLY this JSON object. No preamble, no explanation, no Markdown fences, n
       // If backend call failed or returned empty result, fallback to client-side Gemini
       if (!rawResponse) {
         try {
-          const prompt = `You are a professional chief news editor and translator for KINGS 24x7 news.
-Translate the following ${direction === 'ta2en' ? 'Tamil news article into clear, publication-ready English (AP news style)' : 'English news article into natural news Tamil'}.
+          const prompt = `You are the Chief Tamil & English News Editor for KINGS 24x7 News Channel.
+Translate the following content accurately ${direction === 'ta2en' ? 'from Tamil into publication-ready AP-style English' : 'from English into natural, publication-ready Tamil news media style (முறையான செய்தித் தமிழ் நடை)'}.
 
 Source Title: ${sourceTitle || ''}
 Source Excerpt: ${sourceExcerpt || ''}
-Source Content: ${sourceContent || ''}
+Source Content: ${rawContent || ''}
 
-RULES FOR TRANSLATION:
-1. Translate the ACTUAL text in Source Title and Source Content.
-2. Preserve all HTML tags (<p>, <strong>, <em>, <br>).
-3. Respond ONLY with a valid JSON object in this exact structure:
+CRITICAL RULES FOR TRANSLATION:
+1. USE PROPER NEWS REGISTER (செய்தி ஊடக தமிழ் நடை / AP News Style):
+   - For English to Tamil: Use proper Tamil news terminology (e.g. Chief Minister -> முதலமைச்சர், High Court -> உயர்நீதிமன்றம், Announcement -> அறிவிப்பு, Alert -> எச்சரிக்கை, Police -> காவல்துறை, Prime Minister -> பிரதமர்). Rearrange English SVO sentences into natural Tamil SOV news sentences ending with proper verbs ("எனத் தெரிவித்துள்ளார்", "என்று கூறினார்", "நடவடிக்கை எடுக்கப்பட்டுள்ளது").
+   - For Tamil to English: Translate into clear, concise, active AP-style news English headlines and paragraphs.
+   - Avoid direct, robotic word-for-word machine translations.
+2. PRESERVE NAMES & PLACES:
+   - Accurately transliterate names of persons, cities, states, and institutions (e.g., Chennai -> சென்னை, Tamil Nadu -> தமிழ்நாடு, Stalin -> ஸ்டாலின், Modi -> மோடி).
+3. PRESERVE HTML STRUCTURE:
+   - Keep all HTML tags (<p>, <strong>, <em>, <br>, <a>, <img>, <iframe>, <video>, <ul>, <li>) intact. Only translate the text inside HTML nodes.
+4. STRICT JSON OUTPUT FORMAT:
+   - Return ONLY a valid JSON object matching this exact structure:
 {
-  "title": "...",
-  "excerpt": "...",
-  "content": "<p>...</p>"
+  "title": "translated title in proper news words",
+  "excerpt": "translated summary in proper news words",
+  "content": "<p>translated HTML paragraphs in proper news words</p>"
 }
-4. CRITICAL: Do NOT output placeholder text, schema instructions, or labels like "English translated headline". Return ONLY the JSON object.`;
+5. Do NOT include markdown blocks (\`\`\`json), system tags, or explanatory text. Return ONLY the JSON object.`;
 
           rawResponse = await callGemini(prompt);
         } catch (geminiErr) {
@@ -1784,12 +1888,12 @@ RULES FOR TRANSLATION:
           }
           if (sourceExcerpt && sourceExcerpt.trim()) {
             newExcerpt = await fetchSingleGoogleGtx(sourceExcerpt, targetLang);
-          } else if (sourceContent && sourceContent.trim()) {
-            const tempEx = await fetchSingleGoogleGtx(sourceContent, targetLang);
+          } else if (rawContent && rawContent.trim()) {
+            const tempEx = await fetchSingleGoogleGtx(plainContent, targetLang);
             newExcerpt = tempEx.length > 180 ? tempEx.substring(0, 180) + '...' : tempEx;
           }
-          if (sourceContent && sourceContent.trim()) {
-            newContent = await fetchGoogleGtxTranslation(sourceContent, targetLang);
+          if (rawContent && rawContent.trim()) {
+            newContent = await fetchGoogleGtxTranslation(rawContent, targetLang);
           }
         } catch (gtxErr) {
           console.error('Google GTX fallback failed:', gtxErr);
@@ -1805,9 +1909,9 @@ RULES FOR TRANSLATION:
         return;
       }
 
-      newTitle = safeUrlDecode(newTitle);
-      newExcerpt = safeUrlDecode(newExcerpt);
-      newContent = safeUrlDecode(newContent);
+      newTitle = refineNewsTranslation(safeUrlDecode(newTitle), targetLang);
+      newExcerpt = refineNewsTranslation(safeUrlDecode(newExcerpt), targetLang);
+      newContent = refineNewsTranslation(safeUrlDecode(newContent), targetLang);
 
       if (direction === 'ta2en') {
         setForm(f => ({
@@ -1818,10 +1922,12 @@ RULES FOR TRANSLATION:
           metaTitleEn: newTitle || f.metaTitleEn,
           metaDescriptionEn: newExcerpt || f.metaDescriptionEn
         }));
-        if (editorRefEn.current && newContent) {
-          editorRefEn.current.setContent(newContent);
-        }
         setActiveTab(1);
+        setTimeout(() => {
+          if (editorRefEn.current && newContent) {
+            editorRefEn.current.setContent(newContent);
+          }
+        }, 150);
       } else {
         setForm(f => ({
           ...f,
@@ -1831,10 +1937,12 @@ RULES FOR TRANSLATION:
           metaTitleTa: newTitle || f.metaTitleTa,
           metaDescriptionTa: newExcerpt || f.metaDescriptionTa
         }));
-        if (editorRefTa.current && newContent) {
-          editorRefTa.current.setContent(newContent);
-        }
         setActiveTab(0);
+        setTimeout(() => {
+          if (editorRefTa.current && newContent) {
+            editorRefTa.current.setContent(newContent);
+          }
+        }, 150);
       }
 
       showMsg(`✅ Content translated successfully to ${direction === 'ta2en' ? 'English' : 'Tamil'}!`);
@@ -2313,21 +2421,36 @@ RULES FOR TRANSLATION:
               {(activeTab === 0 || activeTab === 1) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
                   <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <label style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Add title ({activeTab === 0 ? 'Tamil' : 'English'})</label>
-                    <button 
-                      type="button"
-                      onClick={() => handleAutoTranslate(activeTab === 0 ? 'ta2en' : 'en2ta')}
-                      disabled={isTranslating}
-                      style={{
-                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#fff', border: 'none', 
-                        padding: '6px 12px', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: isTranslating ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', gap: '6px', opacity: isTranslating ? 0.7 : 1
-                      }}
-                    >
-                      {isTranslating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
-                      {isTranslating ? 'Translating...' : (activeTab === 0 ? 'Auto-Translate to English' : 'Auto-Translate to Tamil')}
-                    </button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <label style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Add title ({activeTab === 0 ? 'Tamil' : 'English'})
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={autoTranslateActive} 
+                          onChange={e => setAutoTranslateActive(e.target.checked)} 
+                          style={{ cursor: 'pointer', accentColor: '#10B981' }} 
+                        />
+                        ⚡ Auto-Translate On Type: <span style={{ color: autoTranslateActive ? '#10B981' : '#64748b', fontWeight: 700 }}>{autoTranslateActive ? 'ON' : 'OFF'}</span>
+                      </label>
+
+                      <button 
+                        type="button"
+                        onClick={() => handleAutoTranslate(activeTab === 0 ? 'ta2en' : 'en2ta')}
+                        disabled={isTranslating}
+                        style={{
+                          background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#fff', border: 'none', 
+                          padding: '6px 14px', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: isTranslating ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '6px', opacity: isTranslating ? 0.7 : 1,
+                          boxShadow: '0 2px 4px rgba(16,185,129,0.3)'
+                        }}
+                      >
+                        {isTranslating ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
+                        {isTranslating ? 'Translating...' : (activeTab === 0 ? 'Translate to English Now' : 'Translate to Tamil Now')}
+                      </button>
+                    </div>
                   </div>
                     <input 
                       type="text" 
