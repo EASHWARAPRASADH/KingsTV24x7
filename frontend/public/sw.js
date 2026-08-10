@@ -38,6 +38,11 @@ self.addEventListener('fetch', (e) => {
 
   const url = e.request.url;
 
+  // Ignore non-http/https requests (e.g. chrome-extension://)
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return;
+  }
+
   // Do NOT intercept /api/ or /admin routes - let browser handle network directly
   if (url.includes('/api/') || url.includes('/admin')) {
     return;
