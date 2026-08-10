@@ -120,55 +120,57 @@ public class AiAssistService {
         return switch (action != null ? action.toLowerCase() : "") {
             case "headlines" -> """
                     You are a senior news editor for a Tamil-English bilingual news channel called "KINGS 24x7".
-                    Generate exactly 5 compelling headline options for the following topic/idea.
+                    Generate exactly 5 compelling, factual, click-worthy headline options for the following news topic.
                     For each headline, provide both Tamil and English versions.
                     Format each as:
                     1. [Tamil headline] | [English headline]
                     2. [Tamil headline] | [English headline]
                     ... and so on.
-                    Make them attention-grabbing, SEO-friendly, and suitable for a major news website.
+                    Make them attention-grabbing, SEO-friendly (high CTR), and suitable for a major news portal.
                     
                     Topic/Idea: """ + text;
 
             case "expand" -> """
-                    You are a professional news journalist. Expand the following text into a detailed,
-                    well-structured news paragraph (3-5 sentences). Maintain journalistic tone.
-                    Keep the same language as the input (Tamil or English).
+                    You are a professional news journalist for KINGS 24x7. Expand the following text into a detailed,
+                    well-structured news paragraph (3-5 sentences). Maintain objective, formal journalistic tone.
+                    Keep the same language as the input (Tamil or English). Format with clean HTML paragraphs <p>.
                     Do NOT add any prefix or explanation — return only the expanded content.
                     
                     Text to expand: """ + text;
 
             case "summarize" -> """
-                    Summarize the following news content into a concise 2-3 sentence summary.
-                    Keep the same language as the input. This will be used as a short description / teaser.
-                    Do NOT add any prefix — return only the summary.
+                    You are a senior news editor. Summarize the following news content into a concise, punchy 2-3 sentence lead summary.
+                    Keep the same language as the input. This will be used as a short description / news teaser.
+                    Do NOT add any prefix — return only the summary text.
                     
                     Content: """ + text;
 
             case "grammar" -> """
-                    You are a professional copy editor. Review the following news text for grammar,
-                    spelling, punctuation, and style errors. Return the corrected version only.
-                    Keep the same language as the input. Do NOT add explanations.
+                    You are a chief copy editor for KINGS 24x7 news.
+                    Review the following news text and correct all grammar, spelling, punctuation, typos, and style errors.
+                    Maintain formal journalistic tone (AP news style for English, இலக்கிய/செய்தி தமிழ் for Tamil).
+                    Keep the exact same language as the input (Tamil or English). Preserve HTML tags like <p>, <strong>.
+                    Return ONLY the proofread text without explanations or quotation marks.
                     
                     Text: """ + text;
 
             case "tags" -> """
                     You are an SEO specialist for a news website. Read the following article content
-                    and suggest 8-12 relevant news tags/keywords separated by commas.
-                    Include a mix of broad and specific tags. Return ONLY the comma-separated tags, nothing else.
+                    and suggest 8-12 relevant news tags/keywords separated by commas in both Tamil and English.
+                    Include a mix of trending topics, locations, people, and main subjects. Return ONLY comma-separated tags.
                     
                     Article content: """ + text;
 
             case "seo" -> """
-                    You are an SEO specialist for a Tamil news website called "KINGS 24x7".
-                    Based on the following article content, generate:
-                    1. SEO Title in Tamil (60-70 characters)
-                    2. Meta Description in Tamil (150-160 characters)
-                    3. URL Slug in transliterated English/Latin characters (lowercase, hyphens, no special characters, e.g. puthiya-indhiya-ani-...)
-                    4. Focus Keywords: 5-8 relevant focus keywords (comma separated)
-                    5. Tags: 5-8 relevant tags (comma separated)
+                    You are a lead SEO strategist for KINGS 24x7 Tamil-English news portal.
+                    Based on the following article content, generate high-ranking, search-engine-optimized metadata:
+                    1. SEO Title in Tamil (50-60 characters, high CTR)
+                    2. Meta Description in Tamil (140-160 characters, compelling summary)
+                    3. URL Slug in clean transliterated Latin/English characters (lowercase, hyphens only, e.g. chennai-rain-alert-disaster-team)
+                    4. Focus Keywords: 4-6 high-volume focus keywords (comma-separated)
+                    5. News Tags: 6-10 relevant news tags (comma-separated)
                     
-                    Format your response exactly as:
+                    Format your response strictly as:
                     SEO_TITLE: [Tamil title]
                     META_DESC: [Tamil description]
                     SLUG: [transliterated-slug]
@@ -180,12 +182,16 @@ public class AiAssistService {
             case "translate" -> {
                 String direction = context != null && context.equalsIgnoreCase("en2ta") ? "English to Tamil" : "Tamil to English";
                 yield """
-                        You are a professional news translator for KINGS 24x7. Translate the following text from %s.
-                        If the input contains section headers (like TITLE:, EXCERPT:, CONTENT:), translate each section and preserve the corresponding headers (TITLE:, EXCERPT:, CONTENT:).
-                        If a section is empty or missing in the input, omit that section header from your response.
-                        If no section headers are present, return ONLY the direct translation of the text.
-                        Do NOT include any extra notes, explanations, or placeholder text.
-
+                        You are a chief news editor and professional translator for KINGS 24x7 news channel.
+                        Translate the following text accurately from %s.
+                        
+                        RULES FOR TRANSLATION:
+                        1. JOURNALISTIC REGISTER: Use formal, natural, published news language (இலக்கணப்படி அமைந்த செய்தித் தமிழ் for Tamil, AP news style for English). Avoid direct word-for-word machine translation mistakes.
+                        2. PROPER NAMES & LOCATIONS: Transliterate place names, politician/celebrity names, and official terms accurately (e.g., Chennai, Tamil Nadu, Chief Minister, High Court).
+                        3. SECTION HEADERS: If the input contains section headers (like TITLE:, EXCERPT:, CONTENT:), translate each section while keeping the exact headers (TITLE:, EXCERPT:, CONTENT:).
+                        4. HTML TAGS: Preserve any HTML tags like <p>, <strong>, <em>, <br> without altering tag structure.
+                        5. OUTPUT: Return ONLY the translated text. Do NOT add preamble, conversational notes, or quotes.
+                        
                         Text to Translate:
                         """.formatted(direction) + text;
             }
@@ -193,8 +199,8 @@ public class AiAssistService {
             case "rewrite" -> {
                 String style = context != null ? context : "professional";
                 yield """
-                        Rewrite the following news text in a %s style.
-                        Keep the same language. Return ONLY the rewritten text.
+                        Rewrite the following news text in a %s journalistic style.
+                        Keep the same language. Format with clean HTML paragraphs <p>. Return ONLY the rewritten text.
                         
                         Text: """.formatted(style) + text;
             }
