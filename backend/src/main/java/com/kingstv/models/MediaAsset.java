@@ -26,6 +26,8 @@ public class MediaAsset {
     private LocalDateTime uploadedAt;
     
     private Long uploaderId;
+    
+    private String folderName;
 
     @PrePersist
     protected void onCreate() {
@@ -96,5 +98,13 @@ public class MediaAsset {
 
     public void setUploaderId(Long uploaderId) {
         this.uploaderId = uploaderId;
+    }
+
+    public String getFolderName() {
+        return folderName;
+    }
+
+    public void setFolderName(String folderName) {
+        this.folderName = folderName;
     }
 }
