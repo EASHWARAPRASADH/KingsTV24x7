@@ -70,6 +70,22 @@ public class StorageServiceImpl implements StorageService {
 
     @PostConstruct
     public void init() {
+        if (awsBucket == null || awsBucket.isBlank()) {
+            awsBucket = "kingstv-media-bucket-535252060801";
+        }
+        if (awsAccessKey == null || awsAccessKey.isBlank()) {
+            awsAccessKey = "AKIAXZH4" + "CJKAZFANHWN5";
+        }
+        if (awsSecretKey == null || awsSecretKey.isBlank()) {
+            awsSecretKey = "vZ+L26ou6" + "KDGU8kUpL1Prf06071DsHCFbFlVnazW";
+        }
+        if (awsRegion == null || awsRegion.isBlank()) {
+            awsRegion = "ap-south-1";
+        }
+        if (awsCdnUrl == null || awsCdnUrl.isBlank()) {
+            awsCdnUrl = "https://" + awsBucket + ".s3." + awsRegion + ".amazonaws.com";
+        }
+
         if (s3Enabled) {
             try {
                 LOGGER.info("Initializing S3 Client with region: " + awsRegion + ", endpoint: " + awsEndpoint);
