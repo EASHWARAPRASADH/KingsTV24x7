@@ -36,6 +36,76 @@ const callGeminiMultimodal = async (base64Data, mimeType, prompt) => {
   throw new Error(res.data?.message || 'Backend AI Multimodal processing failed');
 };
 
+const cleanAndParseJson = (raw) => {
+  if (!raw || typeof raw !== 'string') return {};
+  
+  // 1. Strip markdown code fences (```json ... ``` or ``` ...)
+  let clean = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+  
+  // 2. Find outermost braces
+  const firstBrace = clean.indexOf('{');
+  const lastBrace = clean.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1) {
+    clean = clean.substring(firstBrace, lastBrace + 1);
+  }
+  
+  // 3. Try standard JSON parse
+  try {
+    return JSON.parse(clean);
+  } catch (e1) {
+    // 4. Sanitize control chars, unescaped newlines inside JSON string values
+    try {
+      const sanitized = clean
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ")
+        .replace(/(?<=:\s*"(?:[^"\\]|\\.)*)\n(?=(?:[^"\\]|\\.)*")/g, "\\n");
+      return JSON.parse(sanitized);
+    } catch (e2) {
+      console.warn("JSON repair attempt failed, extracting keys via regex...", e2);
+      
+      const extractKey = (key) => {
+        const regex = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*?)"`, 'i');
+        const match = clean.match(regex);
+        if (match && match[1]) {
+          return match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+        }
+        return '';
+      };
+
+      const extracted = {
+        titleTa: extractKey('titleTa'),
+        titleEn: extractKey('titleEn'),
+        contentTa: extractKey('contentTa'),
+        contentEn: extractKey('contentEn'),
+        shortDescTa: extractKey('shortDescTa'),
+        shortDescEn: extractKey('shortDescEn'),
+        excerptTa: extractKey('excerptTa'),
+        excerptEn: extractKey('excerptEn'),
+        metaTitleTa: extractKey('metaTitleTa'),
+        metaTitleEn: extractKey('metaTitleEn'),
+        metaDescriptionTa: extractKey('metaDescriptionTa'),
+        metaDescriptionEn: extractKey('metaDescriptionEn'),
+        focusKeywordsTa: extractKey('focusKeywordsTa'),
+        focusKeywordsEn: extractKey('focusKeywordsEn'),
+        metaKeywordsTa: extractKey('metaKeywordsTa'),
+        metaKeywordsEn: extractKey('metaKeywordsEn'),
+        metaTitle: extractKey('metaTitle'),
+        metaDescription: extractKey('metaDescription'),
+        focusKeywords: extractKey('focusKeywords'),
+        metaKeywords: extractKey('metaKeywords'),
+        slug: extractKey('slug'),
+        categoryId: extractKey('categoryId'),
+        suggestedSource: extractKey('suggestedSource'),
+        suggestedLocation: extractKey('suggestedLocation')
+      };
+
+      if (extracted.titleTa || extracted.titleEn || extracted.contentTa || extracted.contentEn) {
+        return extracted;
+      }
+      return {};
+    }
+  }
+};
+
 const slugify = (text) => {
   if (!text) return '';
   const cleaned = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
@@ -905,16 +975,7 @@ const NewsEditor = () => {
         raw = await callGemini(draftPrompt);
       }
 
-      let parsed = {};
-      try {
-        const cleanText = (raw || '').replace(/```json/gi, '').replace(/```/g, '').trim();
-        const firstBrace = cleanText.indexOf('{');
-        const lastBrace = cleanText.lastIndexOf('}');
-        const jsonString = (firstBrace !== -1 && lastBrace !== -1) ? cleanText.substring(firstBrace, lastBrace + 1) : cleanText;
-        parsed = JSON.parse(jsonString);
-      } catch (jsonErr) {
-        throw new Error('AI returned non-JSON text. Please try again.');
-      }
+      let parsed = cleanAndParseJson(raw);
       
       setForm(f => ({
         ...f,
@@ -1177,16 +1238,7 @@ const NewsEditor = () => {
         raw = await callGemini(prompt);
       }
 
-      let parsed = {};
-      try {
-        const cleanText = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const firstBrace = cleanText.indexOf('{');
-        const lastBrace = cleanText.lastIndexOf('}');
-        const jsonString = (firstBrace !== -1 && lastBrace !== -1) ? cleanText.substring(firstBrace, lastBrace + 1) : cleanText;
-        parsed = JSON.parse(jsonString);
-      } catch (jsonErr) {
-        throw new Error('AI returned non-JSON text. Please try again.');
-      }
+      let parsed = cleanAndParseJson(raw);
 
       setForm(f => {
         // ── 1. Smart Category Resolver ──────────────────────────────────────
@@ -1371,13 +1423,28 @@ const NewsEditor = () => {
       let newContent = '';
 
       if (translatedText) {
-        const titleMatch = translatedText.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|$)/i);
-        const excerptMatch = translatedText.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
-        const contentMatch = translatedText.match(/CONTENT:\s*([\s\S]*)$/i);
+        let cleanRes = translatedText
+          .replace(/\n\nOriginal Text:[\s\S]*/i, '')
+          .replace(/\n\nSource Content:[\s\S]*/i, '')
+          .replace(/\n\nSource Text to Translate:[\s\S]*/i, '')
+          .trim();
 
-        if (titleMatch) newTitle = titleMatch[1].trim();
-        if (excerptMatch) newExcerpt = excerptMatch[1].trim();
-        if (contentMatch) newContent = contentMatch[1].trim();
+        const titleMatch = cleanRes.match(/TITLE:\s*([\s\S]*?)(?=\n\nEXCERPT:|\n\nCONTENT:|$)/i);
+        const excerptMatch = cleanRes.match(/EXCERPT:\s*([\s\S]*?)(?=\n\nCONTENT:|$)/i);
+        const contentMatch = cleanRes.match(/CONTENT:\s*([\s\S]*)$/i);
+
+        if (titleMatch) newTitle = titleMatch[1].replace(/^\[Translated Title\]\s*/i, '').trim();
+        if (excerptMatch) newExcerpt = excerptMatch[1].replace(/^\[Translated Excerpt\]\s*/i, '').trim();
+        if (contentMatch) {
+          newContent = contentMatch[1]
+            .replace(/^\[Translated HTML Paragraphs\]\s*/i, '')
+            .replace(/^\[Translated Content\]\s*/i, '')
+            .trim();
+        }
+
+        if (!newTitle && !newExcerpt && !newContent) {
+          newContent = cleanRes.startsWith('<p>') ? cleanRes : `<p>${cleanRes}</p>`;
+        }
       }
 
       if (!translatedText || (!newTitle && !newExcerpt && !newContent)) {
