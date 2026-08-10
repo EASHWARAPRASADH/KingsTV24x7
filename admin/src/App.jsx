@@ -6,43 +6,63 @@ import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import Breadcrumbs from './components/layout/Breadcrumbs';
 
-// Code-split page components for optimal load performance
-const Login = lazy(() => import('./pages/Login'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
-const KycManagement = lazy(() => import('./pages/admin/KycManagement'));
-const ProfanityFilter = lazy(() => import('./pages/admin/ProfanityFilter'));
-const SystemSettings = lazy(() => import('./pages/admin/SystemSettings'));
-const AnalyticsDashboard = lazy(() => import('./pages/admin/AnalyticsDashboard'));
-const TaxonomyManager = lazy(() => import('./pages/admin/TaxonomyManager'));
-const RoleManagement = lazy(() => import('./pages/admin/RoleManagement'));
-const PushNotifications = lazy(() => import('./pages/admin/PushNotifications'));
-const HomeLayoutBuilder = lazy(() => import('./pages/admin/HomeLayoutBuilder'));
-const NavbarManager = lazy(() => import('./pages/admin/NavbarManager'));
-const SurveyBuilder = lazy(() => import('./pages/admin/SurveyBuilder'));
-const AuditLogs = lazy(() => import('./pages/admin/AuditLogs'));
-const CommentsModeration = lazy(() => import('./pages/admin/CommentsModeration'));
-const MediaLibrary = lazy(() => import('./pages/admin/MediaLibrary'));
-const SeoConsole = lazy(() => import('./pages/admin/SeoConsole'));
-const ContentQueue = lazy(() => import('./pages/editor/ContentQueue'));
-const MyPosts = lazy(() => import('./pages/journalist/MyPosts'));
-const PostEditor = lazy(() => import('./pages/journalist/PostEditor'));
-const NewsManagement = lazy(() => import('./pages/admin/NewsManagement'));
-const NewsEditor = lazy(() => import('./pages/admin/NewsEditor'));
-const BreakingNewsDashboard = lazy(() => import('./pages/admin/BreakingNewsDashboard'));
-const UgcQueue = lazy(() => import('./pages/admin/UgcQueue'));
-const EditorialCalendar = lazy(() => import('./pages/admin/EditorialCalendar'));
-const AdManagement = lazy(() => import('./pages/admin/AdManagement'));
-const RssManager = lazy(() => import('./pages/admin/RssManager'));
-const RewardSystem = lazy(() => import('./pages/admin/RewardSystem'));
-const SubscribersManagement = lazy(() => import('./pages/admin/SubscribersManagement'));
-const NotificationPreferences = lazy(() => import('./pages/admin/NotificationPreferences'));
-const Profile = lazy(() => import('./pages/admin/Profile'));
-const AiConfiguration = lazy(() => import('./pages/admin/AiConfiguration'));
-const CommunityModules = lazy(() => import('./pages/admin/CommunityModules'));
-const LanguageFontSettings = lazy(() => import('./pages/admin/LanguageFontSettings'));
-const EmployersManagement = lazy(() => import('./pages/admin/EmployersManagement'));
-const CandidatesManagement = lazy(() => import('./pages/admin/CandidatesManagement'));
+// Smart Lazy Loader with Automatic Stale Asset Auto-Refresh
+const lazyWithRetry = (componentImport) =>
+  lazy(async () => {
+    const pageHasBeenRefreshed = JSON.parse(
+      window.sessionStorage.getItem('retry-lazy-refreshed') || 'false'
+    );
+    try {
+      const component = await componentImport();
+      window.sessionStorage.setItem('retry-lazy-refreshed', 'false');
+      return component;
+    } catch (error) {
+      if (!pageHasBeenRefreshed) {
+        window.sessionStorage.setItem('retry-lazy-refreshed', 'true');
+        window.location.reload(true);
+        return { default: () => null };
+      }
+      throw error;
+    }
+  });
+
+// Code-split page components with resilient retry mechanism
+const Login = lazyWithRetry(() => import('./pages/Login'));
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const UserManagement = lazyWithRetry(() => import('./pages/admin/UserManagement'));
+const KycManagement = lazyWithRetry(() => import('./pages/admin/KycManagement'));
+const ProfanityFilter = lazyWithRetry(() => import('./pages/admin/ProfanityFilter'));
+const SystemSettings = lazyWithRetry(() => import('./pages/admin/SystemSettings'));
+const AnalyticsDashboard = lazyWithRetry(() => import('./pages/admin/AnalyticsDashboard'));
+const TaxonomyManager = lazyWithRetry(() => import('./pages/admin/TaxonomyManager'));
+const RoleManagement = lazyWithRetry(() => import('./pages/admin/RoleManagement'));
+const PushNotifications = lazyWithRetry(() => import('./pages/admin/PushNotifications'));
+const HomeLayoutBuilder = lazyWithRetry(() => import('./pages/admin/HomeLayoutBuilder'));
+const NavbarManager = lazyWithRetry(() => import('./pages/admin/NavbarManager'));
+const SurveyBuilder = lazyWithRetry(() => import('./pages/admin/SurveyBuilder'));
+const AuditLogs = lazyWithRetry(() => import('./pages/admin/AuditLogs'));
+const CommentsModeration = lazyWithRetry(() => import('./pages/admin/CommentsModeration'));
+const MediaLibrary = lazyWithRetry(() => import('./pages/admin/MediaLibrary'));
+const SeoConsole = lazyWithRetry(() => import('./pages/admin/SeoConsole'));
+const ContentQueue = lazyWithRetry(() => import('./pages/editor/ContentQueue'));
+const MyPosts = lazyWithRetry(() => import('./pages/journalist/MyPosts'));
+const PostEditor = lazyWithRetry(() => import('./pages/journalist/PostEditor'));
+const NewsManagement = lazyWithRetry(() => import('./pages/admin/NewsManagement'));
+const NewsEditor = lazyWithRetry(() => import('./pages/admin/NewsEditor'));
+const BreakingNewsDashboard = lazyWithRetry(() => import('./pages/admin/BreakingNewsDashboard'));
+const UgcQueue = lazyWithRetry(() => import('./pages/admin/UgcQueue'));
+const EditorialCalendar = lazyWithRetry(() => import('./pages/admin/EditorialCalendar'));
+const AdManagement = lazyWithRetry(() => import('./pages/admin/AdManagement'));
+const RssManager = lazyWithRetry(() => import('./pages/admin/RssManager'));
+const RewardSystem = lazyWithRetry(() => import('./pages/admin/RewardSystem'));
+const SubscribersManagement = lazyWithRetry(() => import('./pages/admin/SubscribersManagement'));
+const NotificationPreferences = lazyWithRetry(() => import('./pages/admin/NotificationPreferences'));
+const Profile = lazyWithRetry(() => import('./pages/admin/Profile'));
+const AiConfiguration = lazyWithRetry(() => import('./pages/admin/AiConfiguration'));
+const CommunityModules = lazyWithRetry(() => import('./pages/admin/CommunityModules'));
+const LanguageFontSettings = lazyWithRetry(() => import('./pages/admin/LanguageFontSettings'));
+const EmployersManagement = lazyWithRetry(() => import('./pages/admin/EmployersManagement'));
+const CandidatesManagement = lazyWithRetry(() => import('./pages/admin/CandidatesManagement'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: 'var(--text-muted)' }}>
@@ -66,22 +86,46 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
+    // Automatic recovery if error is due to updated deployment / stale chunk hashes
+    const isChunkError = error && (
+      error.name === 'ChunkLoadError' || 
+      String(error.message).includes('dynamically imported module') || 
+      String(error.message).includes('Loading chunk') ||
+      String(error.message).includes('Failed to fetch')
+    );
+
+    if (isChunkError) {
+      const lastReload = sessionStorage.getItem('chunk_reload_ts');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
+        sessionStorage.setItem('chunk_reload_ts', String(now));
+        window.location.reload(true);
+      }
+    }
   }
 
   render() {
     if (this.state.hasError) {
+      const isChunkError = this.state.error && (
+        this.state.error.name === 'ChunkLoadError' || 
+        String(this.state.error.message).includes('dynamically imported module') ||
+        String(this.state.error.message).includes('Loading chunk')
+      );
+
       return (
         <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: '#fff', padding: '2rem' }}>
           <div style={{ maxWidth: '500px', width: '100%', background: '#1e293b', border: '1px solid #334155', padding: '2rem', borderRadius: '12px', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#f43f5e' }}>⚠️ Page Render Error</h2>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: '#f43f5e' }}>
+              {isChunkError ? '⚡ System Update Applied' : '⚠️ Page Render Error'}
+            </h2>
             <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-              {this.state.error?.message || 'An unexpected rendering error occurred.'}
+              {isChunkError ? 'A new system update was deployed. Please refresh to load the latest version.' : (this.state.error?.message || 'An unexpected rendering error occurred.')}
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => window.location.reload(true)}
               style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
             >
-              🔄 Refresh Page
+              🔄 Refresh Page & Load Update
             </button>
           </div>
         </div>
